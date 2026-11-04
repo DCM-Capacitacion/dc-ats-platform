@@ -1,0 +1,13 @@
+{
+  "name": "ats-dc-mayorista",
+  "version": "1.0.0",
+  "description": "ATS Colaborativo con IA y Glassmorphism para DC Mayorista",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
