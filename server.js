@@ -8,7 +8,10 @@ const PORT = process.env.PORT || 3000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LCSNxBw_a4mYP--mj9bO9lGPTXWtkes4gGxNKcJe7Dw";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+    });
 app.use(express.json());
 
 const upload = multer({
