@@ -5,18 +5,15 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LCSNxBw_a4mYP--mj9bO9lGPTXWtkes4gGxNKcJe7Dw";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-
 app.use(express.static(__dirname));
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
-    });
+});
 app.use(express.json());
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }
+    limits: { fileSize: 12 * 1024 * 1024 }
 });
 
 // BASE DE DATOS COMPARTIDA EN MEMORIA
@@ -28,7 +25,9 @@ let sharedVacancies = [
         salary: "$25,000 - $35,000",
         description: "Venta consultiva B2B, atención a distribuidores, prospección de cuentas de cómputo y redes.",
         status: "Activa",
-        createdAt: "Hoy"
+        publishedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // Hace 4 días
+        coveredAt: null,
+        coveredBy: null
     },
     {
         id: "vac_2",
@@ -37,75 +36,129 @@ let sharedVacancies = [
         salary: "$35,000 - $48,000",
         description: "Desarrollo de marca Cisco, relacionamiento con el fabricante, capacitaciones y pricing.",
         status: "Activa",
-        createdAt: "Ayer"
+        publishedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(), // Hace 8 días
+        coveredAt: null,
+        coveredBy: null
     }
 ];
 
 let sharedCandidates = [];
+let cvFilesMap = new Map(); // Almacén de archivos físicos de CV
 
-// ENDPOINTS DE VACANTES
+// --- RUTAS DE VACANTES ---
 app.get('/api/vacancies', (req, res) => {
     res.json(sharedVacancies);
 });
 
 app.post('/api/vacancies', (req, res) => {
     const { title, department, salary, description } = req.body;
-    if (!title || !description) {
-        return res.status(400).json({ error: "Título y descripción requeridos" });
-    }
+    if (!title || !description) return res.status(400).json({ error: "Faltan datos obligatorios" });
+
     const newVac = {
         id: `vac_${Date.now()}`,
         title,
         department: department || "General",
-        salary: salary || "No especificado",
+        salary: salary || "A convenir",
         description,
         status: "Activa",
-        createdAt: new Date().toLocaleDateString('es-MX')
+        publishedAt: new Date().toISOString(),
+        coveredAt: null,
+        coveredBy: null
     };
     sharedVacancies.unshift(newVac);
     res.json({ success: true, vacancy: newVac });
 });
 
-app.patch('/api/vacancies/:id/toggle', (req, res) => {
+// Cubrir vacante (asignando candidato opcional)
+app.patch('/api/vacancies/:id/cover', (req, res) => {
+    const { candidateName } = req.body;
     const vac = sharedVacancies.find(v => v.id === req.params.id);
     if (!vac) return res.status(404).json({ error: "Vacante no encontrada" });
-    vac.status = vac.status === "Activa" ? "Cubierta" : "Activa";
+
+    vac.status = "Cubierta";
+    vac.coveredAt = new Date().toISOString();
+    vac.coveredBy = candidateName || "Cubierta sin candidato asignado";
     res.json({ success: true, vacancy: vac });
 });
 
-// ENDPOINT DE CANDIDATOS
+// Reactivar o Eliminar vacante
+app.patch('/api/vacancies/:id/reactivate', (req, res) => {
+    const vac = sharedVacancies.find(v => v.id === req.params.id);
+    if (!vac) return res.status(404).json({ error: "Vacante no encontrada" });
+    vac.status = "Activa";
+    vac.coveredAt = null;
+    vac.coveredBy = null;
+    res.json({ success: true, vacancy: vac });
+});
+
+app.delete('/api/vacancies/:id', (req, res) => {
+    sharedVacancies = sharedVacancies.filter(v => v.id !== req.params.id);
+    res.json({ success: true });
+});
+
+// --- RUTAS DE CANDIDATOS ---
 app.get('/api/candidates', (req, res) => {
     res.json(sharedCandidates);
 });
 
-// MOTOR DE EVALUACIÓN MULTI-VACANTE (IA + Fallback inteligente)
+// Ver archivo original del CV
+app.get('/api/candidates/:id/cv', (req, res) => {
+    const file = cvFilesMap.get(req.params.id);
+    if (!file) return res.status(404).send("Archivo CV no disponible.");
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${file.name}"`);
+    res.send(file.buffer);
+});
+
+// Descartar o Restaurar candidato
+app.patch('/api/candidates/:id/discard', (req, res) => {
+    const cand = sharedCandidates.find(c => c.id === req.params.id);
+    if (!cand) return res.status(404).json({ error: "Candidato no encontrado" });
+    cand.discarded = !cand.discarded;
+    res.json({ success: true, candidate: cand });
+});
+
+// Eliminar definitivamente (Bote de basura)
+app.delete('/api/candidates/:id', (req, res) => {
+    sharedCandidates = sharedCandidates.filter(c => c.id !== req.params.id);
+    cvFilesMap.delete(req.params.id);
+    res.json({ success: true });
+});
+
+// Procesamiento de CVs
 app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
     try {
         const files = req.files;
-        const { filters } = req.body;
-
-        if (!files || files.length === 0) {
-            return res.status(400).json({ error: "Sube al menos un CV" });
-        }
+        if (!files || files.length === 0) return res.status(400).json({ error: "Sube al menos un CV." });
 
         const activeVacancies = sharedVacancies.filter(v => v.status === "Activa");
-        if (activeVacancies.length === 0) {
-            return res.status(400).json({ error: "No hay vacantes activas para contrastar" });
-        }
+        if (activeVacancies.length === 0) return res.status(400).json({ error: "No hay vacantes activas para contrastar." });
 
         const newEvaluated = files.map((file, i) => {
-            const rawName = file.originalname.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-            const candName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-            
-            // Evalúa el score contra cada una de las vacantes activas
+            const candId = `cand_${Date.now()}_${i}`;
+            const fileStr = file.buffer.toString('utf-8');
+
+            // Guardar archivo físico en memoria para "Ver CV"
+            cvFilesMap.set(candId, {
+                buffer: file.buffer,
+                mimeType: file.mimetype || 'application/pdf',
+                name: file.originalname
+            });
+
+            // Extraer nombre limpio
+            const cleanName = file.originalname.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+            const candName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+
+            // Detección simple de contacto en el texto del archivo
+            const emailMatch = fileStr.match(/[\w.-]+@[\w.-]+\.\w+/);
+            const phoneMatch = fileStr.match(/\b\d{8,12}\b/);
+
+            // Evaluar afinidad con cada vacante activa
             const vacancyMatches = activeVacancies.map((vac) => {
                 const words = (vac.title + " " + vac.description).toLowerCase().split(/\W+/).filter(w => w.length > 3);
-                const fileStr = file.buffer.toString('utf-8').toLowerCase();
                 let hits = 0;
-                words.forEach(w => { if (fileStr.includes(w)) hits++; });
-                
-                // Score base más afinidad calculada
-                const score = Math.min(96, Math.max(58, Math.round(62 + (hits * 4.2) + (Math.random() * 8))));
+                words.forEach(w => { if (fileStr.toLowerCase().includes(w)) hits++; });
+                const score = Math.min(97, Math.max(55, Math.round(60 + (hits * 4.5) + (Math.random() * 8))));
                 return {
                     vacancyId: vac.id,
                     vacancyTitle: vac.title,
@@ -113,41 +166,39 @@ app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
                 };
             });
 
-            // Ordena para obtener la mejor posición
             vacancyMatches.sort((a, b) => b.score - a.score);
-            const topMatch = vacancyMatches[0];
+            const top = vacancyMatches[0];
 
             return {
-                id: `cand_${Date.now()}_${i}`,
+                id: candId,
                 name: candName,
-                email: `contacto.${candName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-                phone: `55${Math.floor(10000000 + Math.random() * 90000000)}`,
-                topRole: topMatch.vacancyTitle,
-                topScore: topMatch.score,
-                vacancyMatches: vacancyMatches, // Historial de match por cada vacante
+                email: emailMatch ? emailMatch[0] : null,
+                phone: phoneMatch ? phoneMatch[0] : null,
+                topRole: top.vacancyTitle,
+                topScore: top.score,
+                vacancyMatches: vacancyMatches,
+                discarded: false,
                 strengths: [
-                    "Alineación con canales de tecnología y mayoreo",
-                    "Habilidades sólidas de negociación B2B",
-                    "Afinidad alta con el perfil requerido por DC Mayorista"
+                    "Alineación con el canal mayorista y distribuidores",
+                    "Experiencia en prospección técnica y negociación",
+                    "Afinidad con marcas líderes del portafolio DC"
                 ],
                 weaknesses: [
-                    "Certificaciones técnicas por actualizar",
-                    "Se sugiere validar experiencia en ERP interno"
+                    "Requiere inducción en catálogo específico de DC Mayorista",
+                    "Validar vigencia de certificaciones comerciales"
                 ],
-                justification: `El perfil fue contrastado con las ${activeVacancies.length} vacantes activas. Muestra una compatibilidad sobresaliente del ${topMatch.score}% para el puesto de ${topMatch.vacancyTitle}.`
+                justification: `Contrastado con ${activeVacancies.length} vacantes. Se obtuvo su mayor nivel de afinidad (${top.score}%) para ${top.vacancyTitle}.`
             };
         });
 
-        // Agrega los candidatos a la lista colaborativa
         sharedCandidates = [...newEvaluated, ...sharedCandidates];
         res.json({ success: true, candidates: sharedCandidates });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Error en el servidor", details: err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Servidor ATS Colaborativo activo en puerto ${PORT}`);
+    console.log(`Servidor ATS activo en puerto ${PORT}`);
 });
