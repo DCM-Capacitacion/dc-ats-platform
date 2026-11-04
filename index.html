@@ -12,22 +12,18 @@
 <body>
     <div class="ambient-glow"></div>
 
-    <!-- HEADER SUPERIOR CON NAVEGACIÓN Y TEMA -->
+    <!-- HEADER SUPERIOR CON 4 PESTAÑAS -->
     <header class="app-header glass-panel">
         <div class="brand">
             <div class="brand-badge">DC RH</div>
-            <h1>DC Mayorista <span>ATS Colaborativo</span></h1>
+            <h1>DC Mayorista <span>ATS Cloud</span></h1>
         </div>
 
         <nav class="tabs-nav">
-            <button class="tab-btn active" data-tab="tab-candidates">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Candidatos
-            </button>
-            <button class="tab-btn" data-tab="tab-vacancies">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                Gestión de Vacantes
-            </button>
+            <button class="tab-btn active" data-tab="tab-candidates">👥 Candidatos</button>
+            <button class="tab-btn" data-tab="tab-vacancies">📋 Vacantes Activas</button>
+            <button class="tab-btn" data-tab="tab-covered">✅ Vacantes Cubiertas</button>
+            <button class="tab-btn" data-tab="tab-discarded">🗑️ CVs Descartados</button>
         </nav>
 
         <div class="header-actions">
@@ -41,149 +37,121 @@
         </div>
     </header>
 
-    <!-- METRICS KPI STRIP (ESTILO IDÉNTICO A LA IMAGEN ADJUNTA) -->
+    <!-- TARJETAS DE MÉTRICAS KPI CON HALO NEÓN -->
     <section class="kpi-container">
-        <!-- Tarjeta 1 (de tu imagen) -->
+        <!-- 1. Postulados Totales Activos -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
                 <span class="kpi-title">POSTULADOS TOTALES</span>
                 <span class="kpi-icon-badge">📄</span>
             </div>
             <div class="kpi-value-row">
-                <span class="kpi-number" id="kpiTotalCVs">0</span>
+                <span class="kpi-number halo-cyan" id="kpiTotalCVs">0</span>
                 <span class="kpi-subtext">CVs activos</span>
             </div>
             <div class="kpi-progress-bar"><div class="bar-fill cyan-bar" style="width: 100%;"></div></div>
         </div>
 
-        <!-- Tarjeta 2 (de tu imagen) -->
+        <!-- 2. Match IA > 80% -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
                 <span class="kpi-title">MATCH IA &gt; 80%</span>
                 <span class="kpi-icon-badge badge-cyan">✓</span>
             </div>
             <div class="kpi-value-row">
-                <span class="kpi-number text-cyan" id="kpiTopMatch">0</span>
+                <span class="kpi-number halo-cyan text-cyan" id="kpiTopMatch">0</span>
                 <span class="kpi-subtext">Top prospectos</span>
             </div>
-            <div class="kpi-progress-bar"><div class="bar-fill purple-bar" style="width: 45%;"></div></div>
+            <div class="kpi-progress-bar"><div class="bar-fill purple-bar" style="width: 60%;"></div></div>
         </div>
 
-        <!-- Tarjeta 3 (Vacantes Activas) -->
+        <!-- 3. Vacantes en Curso -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
-                <span class="kpi-title">VACANTES EN CURSO</span>
+                <span class="kpi-title">VACANTES ACTIVAS</span>
                 <span class="kpi-icon-badge">💼</span>
             </div>
             <div class="kpi-value-row">
-                <span class="kpi-number" id="kpiActiveVacancies">2</span>
+                <span class="kpi-number halo-green" id="kpiActiveVacancies">0</span>
                 <span class="kpi-subtext">Puestos abiertos</span>
             </div>
-            <div class="kpi-progress-bar"><div class="bar-fill green-bar" style="width: 70%;"></div></div>
+            <div class="kpi-progress-bar"><div class="bar-fill green-bar" style="width: 75%;"></div></div>
         </div>
 
-        <!-- Tarjeta 4 (Tasa de Calificación) -->
+        <!-- 4. Calidad de Talento (Promedio real de CVs activos) -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
                 <span class="kpi-title">CALIDAD DE TALENTO</span>
                 <span class="kpi-icon-badge">⚡</span>
             </div>
             <div class="kpi-value-row">
-                <span class="kpi-number" id="kpiAvgScore">78%</span>
-                <span class="kpi-subtext">Score promedio</span>
+                <span class="kpi-number halo-cyan" id="kpiAvgScore">0%</span>
+                <span class="kpi-subtext">Promedio afinidad</span>
             </div>
-            <div class="kpi-progress-bar"><div class="bar-fill cyan-bar" style="width: 78%;"></div></div>
+            <div class="kpi-progress-bar"><div class="bar-fill cyan-bar" id="kpiAvgBar" style="width: 0%;"></div></div>
         </div>
 
-        <!-- Tarjeta 5 (Eficiencia de Contratación) -->
+        <!-- 5. Tiempo de Cobertura Promedio -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
-                <span class="kpi-title">TIEMPO ESTIMADO</span>
+                <span class="kpi-title">TIEMPO DE COBERTURA</span>
                 <span class="kpi-icon-badge">⏱️</span>
             </div>
             <div class="kpi-value-row">
-                <span class="kpi-number">12</span>
-                <span class="kpi-subtext">Días p/ vacante</span>
+                <span class="kpi-number halo-purple" id="kpiAvgCoverageDays">--</span>
+                <span class="kpi-subtext">Días promedio</span>
             </div>
-            <div class="kpi-progress-bar"><div class="bar-fill purple-bar" style="width: 55%;"></div></div>
+            <div class="kpi-progress-bar"><div class="bar-fill purple-bar" style="width: 50%;"></div></div>
         </div>
     </section>
 
-    <!-- CONTENIDO: PESTAÑA 1 - CANDIDATOS -->
+    <!-- PESTAÑA 1: CANDIDATOS ACTIVOS -->
     <main id="tab-candidates" class="tab-content active dashboard-layout">
-        <!-- SIDEBAR DE FILTROS ACTUALIZADO -->
+        <!-- Sidebar de Filtros -->
         <aside class="sidebar-filters glass-panel">
             <div class="panel-header">
                 <h2>Filtros Avanzados</h2>
-                <span class="subtitle">Segmentación en Tiempo Real</span>
+                <span class="subtitle">Segmentación de Talento</span>
             </div>
 
-            <!-- Filtro por Vacante -->
             <div class="filter-group">
                 <label class="group-title">Filtrar por Vacante</label>
                 <select id="filterVacancySelect" class="glass-select">
-                    <option value="ALL">Todas las vacantes</option>
+                    <option value="ALL">Todas las vacantes activas</option>
                 </select>
             </div>
 
-            <!-- Score Mínimo -->
+            <!-- Score Mínimo ATS (Filtra según el porcentaje de la tarjeta) -->
             <div class="filter-group">
                 <div class="filter-label-flex">
                     <label for="scoreRange">Score Mínimo ATS</label>
-                    <span id="scoreDisplay" class="value-highlight">70%</span>
+                    <span id="scoreDisplay" class="value-highlight">50%</span>
                 </div>
-                <input type="range" id="scoreRange" min="40" max="95" value="70" class="custom-slider">
+                <input type="range" id="scoreRange" min="40" max="95" value="50" class="custom-slider">
             </div>
 
-            <!-- Experiencia Comprobada (Requerida exacta) -->
             <div class="filter-group">
                 <label class="group-title">Experiencia Comprobada</label>
                 <div class="checkbox-stack">
-                    <label class="custom-checkbox">
-                        <input type="checkbox" name="exp" value="Menos de 1 año">
-                        <span class="checkmark"></span>
-                        <span>Menos de 1 año</span>
-                    </label>
-                    <label class="custom-checkbox">
-                        <input type="checkbox" name="exp" value="1 a 3 años" checked>
-                        <span class="checkmark"></span>
-                        <span>1 a 3 años</span>
-                    </label>
-                    <label class="custom-checkbox">
-                        <input type="checkbox" name="exp" value="3 a 5 años">
-                        <span class="checkmark"></span>
-                        <span>3 a 5 años</span>
-                    </label>
-                    <label class="custom-checkbox">
-                        <input type="checkbox" name="exp" value="+5 años Senior">
-                        <span class="checkmark"></span>
-                        <span>+5 años Senior</span>
-                    </label>
+                    <label class="custom-checkbox"><input type="checkbox" name="exp" value="Menos de 1 año"><span class="checkmark"></span>Menos de 1 año</label>
+                    <label class="custom-checkbox"><input type="checkbox" name="exp" value="1 a 3 años" checked><span class="checkmark"></span>1 a 3 años</label>
+                    <label class="custom-checkbox"><input type="checkbox" name="exp" value="3 a 5 años"><span class="checkmark"></span>3 a 5 años</label>
+                    <label class="custom-checkbox"><input type="checkbox" name="exp" value="+5 años Senior"><span class="checkmark"></span>+5 años Senior</label>
                 </div>
             </div>
 
-            <!-- Palabras Clave (Vacío por defecto) -->
             <div class="filter-group">
                 <label class="group-title">Palabras Clave Requeridas</label>
                 <div class="tags-input-wrapper" id="tagsContainer">
-                    <input type="text" id="tagInput" placeholder="Escribe y pulsa Enter..." class="transparent-input">
+                    <input type="text" id="tagInput" placeholder="Escribe y presiona Enter..." class="transparent-input">
                 </div>
             </div>
 
-            <!-- Criterios de Descarte Inmediato (Actualizados) -->
             <div class="filter-group discard-zone">
-                <label class="group-title danger-label">Criterios de Descarte Inmediato</label>
+                <label class="group-title danger-label">Criterios de Descarte</label>
                 <div class="checkbox-stack" id="discardStack">
-                    <label class="custom-checkbox danger-check">
-                        <input type="checkbox" name="discardRule" value="Sin experiencia relacionada en la posición" checked>
-                        <span class="checkmark"></span>
-                        <span>Sin experiencia relacionada</span>
-                    </label>
-                    <label class="custom-checkbox danger-check">
-                        <input type="checkbox" name="discardRule" value="Sin título universitario">
-                        <span class="checkmark"></span>
-                        <span>Sin título universitario</span>
-                    </label>
+                    <label class="custom-checkbox danger-check"><input type="checkbox" name="discardRule" value="Sin experiencia relacionada en la posición" checked><span class="checkmark"></span>Sin experiencia relacionada</label>
+                    <label class="custom-checkbox danger-check"><input type="checkbox" name="discardRule" value="Sin título universitario"><span class="checkmark"></span>Sin título universitario</label>
                 </div>
                 <div class="dynamic-rule-box">
                     <input type="text" id="newRuleInput" placeholder="Añadir regla..." class="glass-input-sm">
@@ -193,52 +161,47 @@
 
             <div class="filter-actions">
                 <button type="button" id="btnApplyFilters" class="btn-action-primary">Aplicar Filtros</button>
-                <button type="button" id="btnResetFilters" class="btn-action-ghost">Restablecer</button>
             </div>
         </aside>
 
-        <!-- SECCIÓN DE SUBIDA Y LISTADO -->
+        <!-- Contenedor Principal de Candidatos -->
         <section class="main-candidates-flow">
-            <!-- Dropzone de CVs masivo -->
+            <!-- Barra de Carga de CVs -->
             <div class="glass-panel upload-zone-compact">
                 <div class="drop-zone" id="dropZone">
                     <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.txt" class="file-input-hidden">
                     <div class="drop-content-flex">
                         <span class="drop-emoji">📤</span>
                         <div>
-                            <h3>Arrastra currículums aquí o haz clic para subir</h3>
-                            <p>Soporta múltiples PDFs y TXT simultáneamente</p>
+                            <h3>Arrastra currículums aquí o haz clic</h3>
+                            <p>Soporta múltiples PDFs y documentos simultáneos</p>
                         </div>
                         <span class="file-counter-pill" id="fileCounter">0 archivos</span>
                     </div>
                 </div>
                 <button id="btnProcess" class="btn-neon-glow">
-                    <span>⚡ Evaluar Candidatos con IA</span>
+                    <span>⚡ Evaluar Candidatos</span>
                 </button>
             </div>
 
-            <!-- Loader -->
-            <div class="loader-container" id="loaderContainer">
-                <div class="spinner"></div>
-                <p>Analizando currículums y contrastando contra todas las vacantes activas...</p>
+            <!-- Toolbar con Switcher de Vistas: Tarjetas vs Lista -->
+            <div class="results-header">
+                <h2>Candidatos Activos (<span id="resultsCount">0</span>)</h2>
+                <div class="view-mode-switcher">
+                    <button id="viewGridBtn" class="mode-btn active" title="Vista en Cuadrícula">⊞ Tarjetas</button>
+                    <button id="viewListBtn" class="mode-btn" title="Vista en Lista">☰ Lista</button>
+                </div>
             </div>
 
-            <!-- Grid de Tarjetas de Candidatos -->
-            <div class="results-dashboard">
-                <div class="results-header">
-                    <h2>Candidatos Evaluados (<span id="resultsCount">0</span>)</h2>
-                </div>
-                <div class="candidates-grid" id="candidatesGrid"></div>
-            </div>
+            <div class="candidates-grid" id="candidatesGrid"></div>
         </section>
     </main>
 
-    <!-- CONTENIDO: PESTAÑA 2 - GESTIÓN DE VACANTES -->
-    <main id="tab-vacancies" class="tab-content dashboard-layout vacancies-view">
-        <!-- Formulario Crear Vacante -->
+    <!-- PESTAÑA 2: GESTIÓN DE VACANTES ACTIVAS -->
+    <main id="tab-vacancies" class="tab-content dashboard-layout vacancies-layout">
         <aside class="vacancies-form-panel glass-panel">
             <h2>Publicar Nueva Vacante</h2>
-            <p class="subtitle">Estará disponible de inmediato para todos los reclutadores</p>
+            <p class="subtitle">Estará disponible para contrastar candidatos inmediatamente</p>
             <form id="createVacancyForm" class="vac-form">
                 <div class="form-group">
                     <label>Título del Puesto</label>
@@ -254,20 +217,57 @@
                 </div>
                 <div class="form-group">
                     <label>Descripción y Requisitos Clave</label>
-                    <textarea id="vacDesc" placeholder="Detalla las certificaciones, años de experiencia y conocimientos técnicos..." required class="glass-textarea"></textarea>
+                    <textarea id="vacDesc" placeholder="Detalla experiencia requerida, marcas de TI, certificaciones..." required class="glass-textarea"></textarea>
                 </div>
                 <button type="submit" class="btn-action-primary">+ Publicar Vacante</button>
             </form>
         </aside>
 
-        <!-- Listado de Vacantes -->
         <section class="vacancies-list-panel">
             <div class="results-header">
-                <h2>Bolsa de Trabajo Interna DC Mayorista</h2>
+                <h2>Puestos Activos en DC Mayorista</h2>
             </div>
-            <div class="vacancies-grid" id="vacanciesGrid"></div>
+            <div class="vacancies-grid" id="activeVacanciesGrid"></div>
         </section>
     </main>
+
+    <!-- PESTAÑA 3: VACANTES CUBIERTAS -->
+    <main id="tab-covered" class="tab-content dashboard-layout full-width-layout">
+        <section class="vacancies-list-panel">
+            <div class="results-header">
+                <h2>Historial de Vacantes Cubiertas</h2>
+            </div>
+            <div class="vacancies-grid" id="coveredVacanciesGrid"></div>
+        </section>
+    </main>
+
+    <!-- PESTAÑA 4: CVS DESCARTADOS (CON BOTE DE BASURA) -->
+    <main id="tab-discarded" class="tab-content dashboard-layout full-width-layout">
+        <section class="main-candidates-flow">
+            <div class="results-header">
+                <h2>Candidatos Descartados (<span id="discardedCount">0</span>)</h2>
+            </div>
+            <div class="candidates-grid" id="discardedGrid"></div>
+        </section>
+    </main>
+
+    <!-- MODAL: CUBRIR VACANTE ASIGNANDO CANDIDATO -->
+    <div id="coverModal" class="modal-overlay">
+        <div class="modal-box glass-panel">
+            <h3>Marcar Vacante como Cubierta</h3>
+            <p class="subtitle" id="coverModalVacTitle"></p>
+            
+            <label style="font-size:0.85rem; margin-top:1rem; display:block;">¿Qué candidato cubrió la vacante?</label>
+            <select id="coverCandidateSelect" class="glass-select" style="margin: 0.5rem 0 1.5rem 0;">
+                <option value="">Cubierta sin candidato asignado</option>
+            </select>
+
+            <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                <button type="button" id="btnCancelCover" class="btn-action-ghost">Cancelar</button>
+                <button type="button" id="btnConfirmCover" class="btn-action-primary" style="width:auto; padding:0.6rem 1.2rem;">Confirmar Cierre</button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
