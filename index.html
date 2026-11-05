@@ -11,8 +11,9 @@
 </head>
 <body>
     <div class="ambient-glow"></div>
+    <div id="toastContainer" class="toast-container"></div>
 
-    <!-- HEADER SUPERIOR -->
+    <!-- HEADER SUPERIOR CON NAVEGACIÓN -->
     <header class="app-header glass-panel">
         <div class="brand">
             <div class="brand-badge">DC RH</div>
@@ -20,14 +21,14 @@
         </div>
 
         <nav class="tabs-nav">
-            <button class="tab-btn active" data-tab="tab-candidates">👥 Candidatos</button>
-            <button class="tab-btn" data-tab="tab-vacancies">📋 Vacantes Activas</button>
-            <button class="tab-btn" data-tab="tab-covered">✅ Vacantes Cubiertas</button>
-            <button class="tab-btn" data-tab="tab-discarded">🗑️ CVs Descartados</button>
+            <button type="button" class="tab-btn active" data-tab="tab-candidates">👥 Candidatos</button>
+            <button type="button" class="tab-btn" data-tab="tab-vacancies">📋 Vacantes Activas</button>
+            <button type="button" class="tab-btn" data-tab="tab-covered">✅ Vacantes Cubiertas</button>
+            <button type="button" class="tab-btn" data-tab="tab-discarded">🗑️ CVs Descartados</button>
         </nav>
 
         <div class="header-actions">
-            <button id="themeToggleBtn" class="theme-toggle" title="Cambiar tema">
+            <button id="themeToggleBtn" class="theme-toggle" type="button" title="Cambiar tema">
                 <span class="theme-icon">🌙</span>
             </button>
             <div class="status-indicator">
@@ -39,7 +40,6 @@
 
     <!-- TARJETAS DE MÉTRICAS KPI -->
     <section class="kpi-container">
-        <!-- 1. Postulados Activos -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
                 <span class="kpi-title">POSTULADOS TOTALES</span>
@@ -52,7 +52,6 @@
             <div class="kpi-progress-bar"><div class="bar-fill cyan-bar" style="width: 100%;"></div></div>
         </div>
 
-        <!-- 2. Match IA > 80% -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
                 <span class="kpi-title">MATCH IA &gt; 80%</span>
@@ -65,7 +64,6 @@
             <div class="kpi-progress-bar"><div class="bar-fill purple-bar" style="width: 60%;"></div></div>
         </div>
 
-        <!-- 3. Vacantes Activas -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
                 <span class="kpi-title">VACANTES ACTIVAS</span>
@@ -78,7 +76,6 @@
             <div class="kpi-progress-bar"><div class="bar-fill green-bar" style="width: 75%;"></div></div>
         </div>
 
-        <!-- 4. Calidad de Talento (Promedio real de activos) -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
                 <span class="kpi-title">CALIDAD DE TALENTO</span>
@@ -91,7 +88,6 @@
             <div class="kpi-progress-bar"><div class="bar-fill cyan-bar" id="kpiAvgBar" style="width: 0%;"></div></div>
         </div>
 
-        <!-- 5. Tiempo de Cobertura Real -->
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
                 <span class="kpi-title">TIEMPO DE COBERTURA</span>
@@ -105,13 +101,12 @@
         </div>
     </section>
 
-    <!-- PESTAÑA 1: CANDIDATOS ACTIVOS -->
+    <!-- PESTAÑA 1: CANDIDATOS -->
     <main id="tab-candidates" class="tab-content active dashboard-layout">
-        <!-- Sidebar Limpio con Filtros Instantáneos -->
         <aside class="sidebar-filters glass-panel">
             <div class="panel-header">
                 <h2>Filtros Instantáneos</h2>
-                <span class="subtitle">Ajuste automático en tiempo real</span>
+                <span class="subtitle">Ajuste automático en vivo</span>
             </div>
 
             <div class="filter-group">
@@ -121,7 +116,6 @@
                 </select>
             </div>
 
-            <!-- Score fijado en 80% por defecto -->
             <div class="filter-group">
                 <div class="filter-label-flex">
                     <label for="scoreRange">Score Mínimo ATS</label>
@@ -131,12 +125,11 @@
             </div>
         </aside>
 
-        <!-- Contenedor Principal de Candidatos -->
         <section class="main-candidates-flow">
-            <!-- Barra de Carga -->
+            <!-- Zona de Subida que responde a Clic y a Arrastre -->
             <div class="glass-panel upload-zone-compact">
                 <div class="drop-zone" id="dropZone">
-                    <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.txt" class="file-input-hidden">
+                    <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.txt" style="display:none;">
                     <div class="drop-content-flex">
                         <span class="drop-emoji">📤</span>
                         <div>
@@ -146,18 +139,17 @@
                         <span class="file-counter-pill" id="fileCounter">0 archivos</span>
                     </div>
                 </div>
-                <button id="btnProcess" class="btn-neon-glow">
+                <button id="btnProcess" type="button" class="btn-neon-glow">
                     <span>⚡ Analizar con IA</span>
                 </button>
             </div>
 
-            <!-- Toolbar con Botón de Re-evaluación y Selector de Vistas -->
             <div class="results-header">
                 <h2>Candidatos Evaluados (<span id="resultsCount">0</span>)</h2>
                 <div class="view-mode-switcher">
-                    <button id="btnRecalculate" class="mode-btn refresh-btn" title="Re-evaluar CVs con vacantes actuales">🔄 Actualizar</button>
-                    <button id="viewGridBtn" class="mode-btn active" title="Vista en Cuadrícula">⊞ Tarjetas</button>
-                    <button id="viewListBtn" class="mode-btn" title="Vista en Lista">☰ Lista</button>
+                    <button id="btnRecalculate" type="button" class="mode-btn refresh-btn" title="Re-evaluar CVs con vacantes actuales">🔄 Actualizar</button>
+                    <button id="viewGridBtn" type="button" class="mode-btn active">⊞ Tarjetas</button>
+                    <button id="viewListBtn" type="button" class="mode-btn">☰ Lista</button>
                 </div>
             </div>
 
@@ -165,11 +157,11 @@
         </section>
     </main>
 
-    <!-- PESTAÑA 2: GESTIÓN DE VACANTES ACTIVAS -->
+    <!-- PESTAÑA 2: VACANTES ACTIVAS -->
     <main id="tab-vacancies" class="tab-content dashboard-layout vacancies-layout">
         <aside class="vacancies-form-panel glass-panel">
             <h2>Publicar Nueva Vacante</h2>
-            <p class="subtitle">Al publicarla, podrás re-evaluar los CVs cargados con el botón 🔄</p>
+            <p class="subtitle">Estará disponible de inmediato en toda la plataforma</p>
             <form id="createVacancyForm" class="vac-form">
                 <div class="form-group">
                     <label>Título del Puesto</label>
@@ -185,7 +177,7 @@
                 </div>
                 <div class="form-group">
                     <label>Descripción y Requisitos Clave</label>
-                    <textarea id="vacDesc" placeholder="Detalla competencias, experiencia y funciones principales..." required class="glass-textarea"></textarea>
+                    <textarea id="vacDesc" placeholder="Detalla competencias, experiencia y funciones..." required class="glass-textarea"></textarea>
                 </div>
                 <button type="submit" class="btn-action-primary">+ Publicar Vacante</button>
             </form>
@@ -209,7 +201,7 @@
         </section>
     </main>
 
-    <!-- PESTAÑA 4: CVS DESCARTADOS (CON BOTE DE BASURA) -->
+    <!-- PESTAÑA 4: CVS DESCARTADOS -->
     <main id="tab-discarded" class="tab-content dashboard-layout full-width-layout">
         <section class="main-candidates-flow">
             <div class="results-header">
@@ -219,7 +211,7 @@
         </section>
     </main>
 
-    <!-- MODAL: CUBRIR VACANTE -->
+    <!-- MODAL PARA CUBRIR VACANTE -->
     <div id="coverModal" class="modal-overlay">
         <div class="modal-box glass-panel">
             <h3>Marcar Vacante como Cubierta</h3>
