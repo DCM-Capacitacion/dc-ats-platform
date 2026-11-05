@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('dc-theme', next);
     });
 
-    // 2. Navegación por 4 Pestañas
+    // 2. Navegación por Pestañas
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
     tabButtons.forEach(btn => {
@@ -25,76 +25,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 3. Switcher de Vista: Tarjetas vs Lista
-    let isListView = false;
+    // 3. Switcher de Vistas (Tarjetas vs Lista)
     const viewGridBtn = document.getElementById('viewGridBtn');
     const viewListBtn = document.getElementById('viewListBtn');
     const candidatesGrid = document.getElementById('candidatesGrid');
 
     viewGridBtn.addEventListener('click', () => {
-        isListView = false;
         viewGridBtn.classList.add('active');
         viewListBtn.classList.remove('active');
         candidatesGrid.classList.remove('list-view');
     });
 
     viewListBtn.addEventListener('click', () => {
-        isListView = true;
         viewListBtn.classList.add('active');
         viewGridBtn.classList.remove('active');
         candidatesGrid.classList.add('list-view');
     });
 
-    // 4. Tags de Palabras Clave (Vacías por defecto)
-    const tagsContainer = document.getElementById('tagsContainer');
-    const tagInput = document.getElementById('tagInput');
-    let tagsList = [];
-
-    tagInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && tagInput.value.trim() !== '') {
-            e.preventDefault();
-            const val = tagInput.value.trim();
-            if (!tagsList.includes(val)) {
-                tagsList.push(val);
-                renderTags();
-            }
-            tagInput.value = '';
-        }
-    });
-
-    tagsContainer.addEventListener('click', (e) => {
-        if (e.target.classList.contains('tag-close')) {
-            tagsList = tagsList.filter(t => t !== e.target.dataset.tag);
-            renderTags();
-        }
-    });
-
-    function renderTags() {
-        tagsContainer.querySelectorAll('.tag-pill').forEach(p => p.remove());
-        tagsList.forEach(t => {
-            const pill = document.createElement('div');
-            pill.className = 'tag-pill';
-            pill.innerHTML = `${t} <span class="tag-close" data-tag="${t}">&times;</span>`;
-            tagsContainer.insertBefore(pill, tagInput);
-        });
-    }
-
-    // 5. Criterios Dinámicos de Descarte
-    const btnAddRule = document.getElementById('btnAddRule');
-    const newRuleInput = document.getElementById('newRuleInput');
-    const discardStack = document.getElementById('discardStack');
-
-    btnAddRule.addEventListener('click', () => {
-        const rule = newRuleInput.value.trim();
-        if (!rule) return;
-        const label = document.createElement('label');
-        label.className = 'custom-checkbox danger-check';
-        label.innerHTML = `<input type="checkbox" name="discardRule" value="${rule}" checked><span class="checkmark"></span>${rule}`;
-        discardStack.appendChild(label);
-        newRuleInput.value = '';
-    });
-
-    // 6. Carga y Gestión de Vacantes y Métricas de Cobertura
+    // 4. Vacantes y Cálculo Exacto de Días
     let globalVacancies = [];
     let selectedVacancyToCover = null;
 
@@ -105,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeVac = globalVacancies.filter(v => v.status === 'Activa');
         const coveredVac = globalVacancies.filter(v => v.status === 'Cubierta');
 
-        // Render Vacantes Activas con días transcurridos
+        // Render Vacantes Activas
         const activeContainer = document.getElementById('activeVacanciesGrid');
         activeContainer.innerHTML = activeVac.map(v => {
             const daysOpen = Math.floor((Date.now() - new Date(v.publishedAt)) / (1000 * 60 * 60 * 24));
@@ -145,40 +93,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="btn-secondary" onclick="reactivateVacancy('${v.id}')">Reactivar Puesto</button>
                 </div>
             `;
-        }).join('') || '<p style="color:var(--text-secondary); padding:1rem;">Aún no hay vacantes cubiertas registradas.</p>';
+        }).join('') || '<p style="color:var(--text-secondary); padding:1rem;">Aún no hay vacantes cubiertas.</p>';
 
-        // Actualizar Select de Filtros
+        // Select de Filtros
         const filterSelect = document.getElementById('filterVacancySelect');
         filterSelect.innerHTML = `<option value="ALL">Todas las vacantes activas</option>` +
             activeVac.map(v => `<option value="${v.id}">${v.title}</option>`).join('');
 
-        // Actualizar KPIs de Vacantes y Tiempo de Cobertura
+        // KPI Vacantes Activas
         document.getElementById('kpiActiveVacancies').textContent = activeVac.length;
 
+        // KPI TIEMPO DE COBERTURA REAL: promedio exacto de días transcurridos
         if (coveredVac.length > 0) {
             const totalDays = coveredVac.reduce((acc, v) => {
                 const diff = Math.max(1, Math.floor((new Date(v.coveredAt) - new Date(v.publishedAt)) / (1000 * 60 * 60 * 24)));
                 return acc + diff;
             }, 0);
-            const avgDays = Math.round(totalDays / coveredVac.length);
-            document.getElementById('kpiAvgCoverageDays').textContent = avgDays;
+            const avg = Math.round(totalDays / coveredVac.length);
+            document.getElementById('kpiAvgCoverageDays').textContent = `${avg} días`;
         } else {
-            document.getElementById('kpiAvgCoverageDays').textContent = "14";
+            document.getElementById('kpiAvgCoverageDays').textContent = "0 días";
         }
     }
 
-    // Modal para cubrir vacante
+    // Modal para Cubrir Vacante
     const coverModal = document.getElementById('coverModal');
     const coverCandidateSelect = document.getElementById('coverCandidateSelect');
 
     window.openCoverModal = (vacId, vacTitle) => {
         selectedVacancyToCover = vacId;
         document.getElementById('coverModalVacTitle').textContent = `Puesto: ${vacTitle}`;
-        
-        // Llenar selector con candidatos activos
         coverCandidateSelect.innerHTML = `<option value="">Cubierta sin candidato asignado</option>` +
-            globalCandidates.filter(c => !c.discarded).map(c => `<option value="${c.name}">${c.name} (${c.topScore}%)</option>`).join('');
-
+            globalCandidates.filter(c => !c.discarded).map(c => `<option value="${c.name}">${c.name}</option>`).join('');
         coverModal.classList.add('active');
     };
 
@@ -193,18 +139,21 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify({ candidateName })
         });
         coverModal.classList.remove('active');
-        loadVacancies();
+        await loadVacancies();
+        renderAllCandidates(); // Quita la vacante cubierta del desglose de los candidatos
     });
 
     window.reactivateVacancy = async (id) => {
         await fetch(`/api/vacancies/${id}/reactivate`, { method: 'PATCH' });
-        loadVacancies();
+        await loadVacancies();
+        renderAllCandidates();
     };
 
     window.deleteVacancy = async (id) => {
-        if (confirm("¿Seguro que deseas eliminar esta vacante?")) {
+        if (confirm("¿Deseas eliminar esta vacante?")) {
             await fetch(`/api/vacancies/${id}`, { method: 'DELETE' });
-            loadVacancies();
+            await loadVacancies();
+            renderAllCandidates();
         }
     };
 
@@ -222,11 +171,11 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(payload)
         });
         document.getElementById('createVacancyForm').reset();
-        loadVacancies();
-        alert('Vacante publicada con éxito.');
+        await loadVacancies();
+        alert('Vacante publicada con éxito. Pulsa el botón "🔄 Actualizar" en la pestaña de Candidatos para evaluar los CVs existentes.');
     });
 
-    // 7. Renderizado de Candidatos, Filtro por Círculo y Descarte
+    // 5. Candidatos, Filtro Instantáneo y Exclusión de Vacantes Cubiertas
     let globalCandidates = [];
 
     async function loadCandidates() {
@@ -239,32 +188,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedVac = document.getElementById('filterVacancySelect').value;
         const minScore = parseInt(document.getElementById('scoreRange').value, 10);
 
-        // Candidatos Activos vs Descartados
+        // Lista de IDs de vacantes que siguen ABIERTAS
+        const activeVacIds = new Set(globalVacancies.filter(v => v.status === 'Activa').map(v => v.id));
+
         const activeList = globalCandidates.filter(c => !c.discarded);
         const discardedList = globalCandidates.filter(c => c.discarded);
 
-        // Filtrado exacto por el Score marcado en el círculo de la tarjeta
+        // Filtrado en vivo por Score Mínimo
         let filteredActive = activeList.filter(c => c.topScore >= minScore);
         if (selectedVac !== 'ALL') {
             filteredActive = filteredActive.filter(c => c.vacancyMatches.some(vm => vm.vacancyId === selectedVac && vm.score >= minScore));
         }
 
-        // Render Candidatos Activos
         document.getElementById('resultsCount').textContent = filteredActive.length;
-        candidatesGrid.innerHTML = filteredActive.map(c => renderCandidateCard(c, false)).join('') || '<p style="color:var(--text-secondary); padding:1rem;">No hay candidatos con este puntaje.</p>';
+        candidatesGrid.innerHTML = filteredActive.map(c => renderCandidateCard(c, false, activeVacIds)).join('') || '<p style="color:var(--text-secondary); padding:1rem;">No hay candidatos con este score.</p>';
 
-        // Render Candidatos Descartados
         document.getElementById('discardedCount').textContent = discardedList.length;
-        document.getElementById('discardedGrid').innerHTML = discardedList.map(c => renderCandidateCard(c, true)).join('') || '<p style="color:var(--text-secondary); padding:1rem;">No hay candidatos descartados.</p>';
+        document.getElementById('discardedGrid').innerHTML = discardedList.map(c => renderCandidateCard(c, true, activeVacIds)).join('') || '<p style="color:var(--text-secondary); padding:1rem;">No hay candidatos descartados.</p>';
 
-        // Actualizar Métricas KPI:
-        // 1. Postulados Totales Activos
+        // KPIs
         document.getElementById('kpiTotalCVs').textContent = activeList.length;
-
-        // 2. Match IA > 80%
         document.getElementById('kpiTopMatch').textContent = activeList.filter(c => c.topScore >= 80).length;
 
-        // 3. Calidad de Talento (Promedio real de CVs activos)
+        // Calidad de Talento real
         if (activeList.length > 0) {
             const avg = Math.round(activeList.reduce((acc, c) => acc + c.topScore, 0) / activeList.length);
             document.getElementById('kpiAvgScore').textContent = `${avg}%`;
@@ -275,7 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderCandidateCard(c, isDiscardedTab) {
+    function renderCandidateCard(c, isDiscardedTab, activeVacIds) {
+        // Solo muestra en la tarjeta las vacantes que CONTINÚAN ACTIVAS
+        const activeMatches = (c.vacancyMatches || []).filter(vm => activeVacIds.has(vm.vacancyId));
+
         return `
             <div class="candidate-card" onclick="this.classList.toggle('is-expanded')">
                 <div class="card-top">
@@ -287,23 +236,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="other-vacancies-box">
-                    <div class="other-title">Match por Vacante:</div>
-                    ${c.vacancyMatches.map(vm => `
+                    <div class="other-title">Match por Vacante Activa:</div>
+                    ${activeMatches.length > 0 ? activeMatches.map(vm => `
                         <div class="vac-match-row">
                             <span>${vm.vacancyTitle}</span>
                             <strong style="color: ${vm.score >= 80 ? 'var(--neon-green)' : 'var(--neon-cyan)'}">${vm.score}%</strong>
                         </div>
-                    `).join('')}
+                    `).join('') : '<span style="color:var(--text-secondary);">No hay vacantes activas afines</span>'}
                 </div>
 
                 <div class="card-actions" onclick="event.stopPropagation()">
-                    <!-- Botón Ver CV Original -->
                     <a href="/api/candidates/${c.id}/cv" target="_blank" class="btn-quick btn-cv">👁️ Ver CV</a>
 
-                    <!-- Botón WhatsApp solo si existe teléfono en el CV -->
                     ${c.phone ? `<a href="https://api.whatsapp.com/send?phone=${c.phone}" target="_blank" class="btn-quick btn-wa">WhatsApp</a>` : ''}
-
-                    <!-- Botón Email solo si existe correo en el CV -->
                     ${c.email ? `<a href="mailto:${c.email}" class="btn-quick btn-mail">Email</a>` : ''}
 
                     ${!isDiscardedTab ? `
@@ -325,7 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // Funciones globales para botones
     window.toggleDiscard = async (id) => {
         await fetch(`/api/candidates/${id}/discard`, { method: 'PATCH' });
         loadCandidates();
@@ -338,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // 8. Subida y Evaluación Masiva
+    // 6. Subida Masiva con IA
     const fileInput = document.getElementById('fileInput');
     const fileCounter = document.getElementById('fileCounter');
     const btnProcess = document.getElementById('btnProcess');
@@ -358,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData();
         uploadedFiles.forEach(f => formData.append('resumes', f));
         btnProcess.disabled = true;
-        btnProcess.textContent = "Analizando...";
+        btnProcess.textContent = "Analizando con Gemini...";
 
         try {
             const res = await fetch('/api/evaluate', {
@@ -366,28 +310,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
             const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
             uploadedFiles = [];
             fileCounter.textContent = "0 archivos";
-            loadCandidates();
-            alert('¡Evaluación completada con éxito!');
+            await loadCandidates();
+            alert('¡Análisis de IA completado exitosamente!');
         } catch (err) {
-            alert('Error en evaluación');
+            alert(`Error: ${err.message}`);
         } finally {
             btnProcess.disabled = false;
-            btnProcess.textContent = "⚡ Evaluar Candidatos";
+            btnProcess.textContent = "⚡ Analizar con IA";
         }
     });
 
-    // Filtros interactivos
-    document.getElementById('scoreRange').addEventListener('input', (e) => {
-        document.getElementById('scoreDisplay').textContent = `${e.target.value}%`;
-        renderAllCandidates();
-    });
+    // 7. Botón Re-evaluar CVs existentes con vacantes actuales (🔄)
+    const btnRecalculate = document.getElementById('btnRecalculate');
+    btnRecalculate.addEventListener('click', async () => {
+        if (!globalCandidates.length) {
+            alert('No hay candidatos cargados para re-evaluar.');
+            return;
+        }
+        btnRecalculate.disabled = true;
+        btnRecalculate.textContent = "Re-evaluando...";
 
-    document.getElementById('btnApplyFilters').addEventListener('click', renderAllCandidates);
-    document.getElementById('filterVacancySelect').addEventListener('change', renderAllCandidates);
-
-    // Carga inicial
-    loadVacancies();
-    loadCandidates();
-});
+        try {
+            const res = await f
