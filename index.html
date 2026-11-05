@@ -13,7 +13,7 @@
     <div class="ambient-glow"></div>
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- HEADER SUPERIOR CON NAVEGACIÓN -->
+    <!-- HEADER SUPERIOR -->
     <header class="app-header glass-panel">
         <div class="brand">
             <div class="brand-badge">DC RH</div>
@@ -38,7 +38,7 @@
         </div>
     </header>
 
-    <!-- TARJETAS DE MÉTRICAS KPI -->
+    <!-- TARJETAS DE MÉTRICAS KPI CON HALO -->
     <section class="kpi-container">
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
@@ -116,17 +116,17 @@
                 </select>
             </div>
 
+            <!-- Score calibrado a 50% por defecto para ver todos los candidatos de inmediato -->
             <div class="filter-group">
                 <div class="filter-label-flex">
                     <label for="scoreRange">Score Mínimo ATS</label>
-                    <span id="scoreDisplay" class="value-highlight">80%</span>
+                    <span id="scoreDisplay" class="value-highlight">50%</span>
                 </div>
-                <input type="range" id="scoreRange" min="30" max="95" value="80" class="custom-slider">
+                <input type="range" id="scoreRange" min="30" max="95" value="50" class="custom-slider">
             </div>
         </aside>
 
         <section class="main-candidates-flow">
-            <!-- Zona de Subida que responde a Clic y a Arrastre -->
             <div class="glass-panel upload-zone-compact">
                 <div class="drop-zone" id="dropZone">
                     <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.txt" style="display:none;">
@@ -211,21 +211,64 @@
         </section>
     </main>
 
-    <!-- MODAL PARA CUBRIR VACANTE -->
+    <!-- MODAL 1: CUBRIR VACANTE -->
     <div id="coverModal" class="modal-overlay">
         <div class="modal-box glass-panel">
             <h3>Marcar Vacante como Cubierta</h3>
             <p class="subtitle" id="coverModalVacTitle"></p>
-            
             <label style="font-size:0.85rem; margin-top:1.2rem; display:block;">¿Qué candidato cubrió la vacante?</label>
             <select id="coverCandidateSelect" class="glass-select" style="margin: 0.5rem 0 1.5rem 0;">
                 <option value="">Cubierta sin candidato asignado</option>
             </select>
-
             <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
                 <button type="button" id="btnCancelCover" class="btn-action-ghost">Cancelar</button>
                 <button type="button" id="btnConfirmCover" class="btn-action-primary" style="width:auto; padding:0.6rem 1.2rem;">Confirmar Cierre</button>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: VENTANA FLOTANTE DE PERFIL DEL CANDIDATO CON RESUMEN IA -->
+    <div id="candidateDetailModal" class="modal-overlay">
+        <div class="modal-box glass-panel candidate-floating-card">
+            <div class="modal-top-bar">
+                <div>
+                    <h2 id="modalCandName" style="font-size:1.4rem; font-weight:800;">Nombre Candidato</h2>
+                    <span id="modalCandRole" style="color:var(--neon-cyan); font-size:0.85rem; font-weight:600;">Afinidad Principal</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <div id="modalCandScore" class="match-circle-badge" style="width:58px; height:58px; font-size:1.1rem;">0%</div>
+                    <button type="button" id="btnCloseCandModal" class="btn-close-modal" title="Cerrar">&times;</button>
+                </div>
+            </div>
+
+            <!-- Resumen Generado con IA -->
+            <div class="modal-section-box">
+                <h4 style="color:var(--neon-cyan); margin-bottom:0.5rem; display:flex; align-items:center; gap:6px;">
+                    <span>✨</span> Resumen Ejecutivo del Perfil (IA)
+                </h4>
+                <p id="modalCandSummary" style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;"></p>
+            </div>
+
+            <!-- Desglose de Vacantes -->
+            <div class="modal-section-box">
+                <h4 style="margin-bottom:0.5rem; color:var(--text-primary);">Afinidad por Vacante:</h4>
+                <div id="modalCandVacancies" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+            </div>
+
+            <!-- Fortalezas y Oportunidades -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="modal-section-box">
+                    <h4 style="color:var(--neon-green); margin-bottom:0.4rem;">Fortalezas Clave:</h4>
+                    <ul id="modalCandStrengths" style="padding-left:14px; font-size:0.8rem; color:var(--text-secondary); line-height:1.4;"></ul>
+                </div>
+                <div class="modal-section-box">
+                    <h4 style="color:#ffd600; margin-bottom:0.4rem;">Áreas de Oportunidad:</h4>
+                    <ul id="modalCandWeaknesses" style="padding-left:14px; font-size:0.8rem; color:var(--text-secondary); line-height:1.4;"></ul>
+                </div>
+            </div>
+
+            <!-- Acciones Directas -->
+            <div class="modal-actions-bar" id="modalCandActions"></div>
         </div>
     </div>
 
