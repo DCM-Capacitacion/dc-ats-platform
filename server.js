@@ -13,13 +13,13 @@ app.use(express.json());
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 15 * 1024 * 1024 }
+    limits: { fileSize: 20 * 1024 * 1024 }
 });
 
+// Tu clave oficial de Google AI Studio
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LCSNxBw_a4mYP--mj9bO9lGPTXWtkes4gGxNKcJe7Dw";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
 
-// BASE DE DATOS COLABORATIVA
+// Base de datos colaborativa en memoria
 let sharedVacancies = [
     {
         id: "vac_1",
@@ -48,103 +48,117 @@ let sharedVacancies = [
 let sharedCandidates = [];
 let cvFilesMap = new Map();
 
-// FUNCIÓN NATIVA DE EVALUACIÓN CON GEMINI IA
-async function analyzeResumeWithGemini(fileBuffer, mimeType, activeVacancies, fileName) {
-    const vacancyContext = activeVacancies.map(v => `ID: ${v.id} | Puesto: ${v.title} | Requisitos: ${v.description}`).join("\n");
+// Función para extraer texto limpio de archivos Word (.docx) sin librerías externas
+function extractTextFromDocx(buffer) {
+    try {
+        const str = buffer.toString('binary');
+        const matches = str.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
+        if (matches) {
+            return matches.map(m => m.replace(/<\/?[^>]+(>|$)/g, "")).join(" ");
+        }
+    } catch (e) {
+        console.error("Error extrayendo docx:", e);
+    }
+    return buffer.toString('utf-8');
+}
 
-    const prompt = `
-Eres el Reclutador Senior de "DC Mayorista". Analiza minuciosamente el archivo de currículum vitae adjunto.
+// LLAMADA NATIVA Y PRECISA A GOOGLE GEMINI 1.5 FLASH
+async function analyzeWithGeminiAI(file, activeVacancies) {
+    const fileName = file.originalname.toLowerCase();
+    const isPdf = fileName.endsWith('.pdf') || (file.mimetype && file.mimetype.includes('pdf'));
+    const isDocx = fileName.endsWith('.docx') || fileName.endsWith('.doc');
 
-LISTA DE VACANTES ACTIVAS EN DC MAYORISTA:
+    const vacancyContext = activeVacancies.map(v => 
+        `[ID: ${v.id}] PUESTO: "${v.title}" | REQUISITOS Y PERFIL: "${v.description}"`
+    ).join("\n\n");
+
+    const promptText = `
+Eres el Director de Selección de Talento de "DC Mayorista" (empresa líder en distribución mayorista de tecnología y soluciones TI en México).
+Analiza a fondo el documento de Currículum Vitae adjunto.
+
+VACANTES ACTIVAS EN DC MAYORISTA:
 ${vacancyContext}
 
-INSTRUCCIONES:
-1. Extrae el NOMBRE COMPLETO real del candidato con acentos correctos (ej: Efrén, no corrompas letras).
-2. Extrae CORREO ELECTRÓNICO y TELÉFONO si están presentes (si no, déjalos como null).
-3. Evalúa al candidato contra CADA UNA de las vacantes activas y asígnale un score entero de 0 a 100 objetivo y determinista.
-4. Genera 3 fortalezas y 2 áreas de oportunidad específicas de este candidato.
-5. Responde ESTRICTAMENTE con un objeto JSON plano con esta estructura:
+INSTRUCCIONES OBLIGATORIAS:
+1. Extrae el NOMBRE COMPLETO REAL de la persona que aparece adentro del CV (NO uses el nombre del archivo).
+2. Extrae su TELÉFONO y CORREO ELECTRÓNICO reales si aparecen en el CV (si no están, pon null).
+3. Evalúa la experiencia real de este candidato contra CADA UNA de las vacantes activas.
+4. Asigna un porcentaje de afinidad ("score" de 0 a 100) estricto y realista. Dos candidatos distintos NUNCA deben tener el mismo resultado si sus perfiles son diferentes.
+5. Escribe 3 FORTALEZAS y 2 ÁREAS DE OPORTUNIDAD ÚNICAS basadas 100% en lo que leíste en este CV.
+6. Responde EXCLUSIVAMENTE con un JSON plano sin comillas invertidas ni bloques markdown:
 {
-  "name": "Nombre Real Extraído",
-  "email": "correo@gmail.com",
+  "name": "Nombre Real del Candidato",
+  "email": "correo@ejemplo.com",
   "phone": "5512345678",
   "vacancyMatches": [
     { "vacancyId": "id_vacante", "vacancyTitle": "Puesto", "score": 85 }
   ],
-  "strengths": ["Fortaleza 1", "Fortaleza 2", "Fortaleza 3"],
-  "weaknesses": ["Área mejora 1", "Área mejora 2"],
-  "justification": "Justificación técnica clara del match con DC Mayorista."
+  "strengths": [
+    "Fortaleza real 1 detectada en su CV",
+    "Fortaleza real 2 detectada en su CV",
+    "Fortaleza real 3 detectada en su CV"
+  ],
+  "weaknesses": [
+    "Área de oportunidad real 1",
+    "Área de oportunidad real 2"
+  ],
+  "justification": "Explicación personalizada y detallada de por qué este perfil encaja o no en DC Mayorista."
 }
 `;
 
-    try {
-        const response = await fetch(GEMINI_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': GEMINI_API_KEY
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        {
-                            inlineData: {
-                                mimeType: mimeType.includes('pdf') ? 'application/pdf' : 'text/plain',
-                                data: fileBuffer.toString('base64')
-                            }
-                        }
-                    ]
-                }],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    temperature: 0.0 // Determinista y exacto
-                }
-            })
+    // Preparar el contenido multimedia según el tipo de archivo
+    const parts = [];
+
+    if (isPdf) {
+        parts.push({
+            inlineData: {
+                mimeType: "application/pdf",
+                data: file.buffer.toString('base64')
+            }
         });
-
-        if (!response.ok) {
-            throw new Error(`Google API status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        // Limpiar envolturas markdown si Gemini las agrega
-        rawText = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-        return JSON.parse(rawText);
-
-    } catch (apiError) {
-        console.warn(`Aviso Gemini: ${apiError.message}. Usando procesador inteligente local...`);
-        // Fallback inteligente determinista en caso de saturación temporal de API
-        const cleanName = fileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-        const formattedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-        
-        const matches = activeVacancies.map((v, idx) => ({
-            vacancyId: v.id,
-            vacancyTitle: v.title,
-            score: idx === 0 ? 88 : Math.max(55, 80 - (idx * 12))
-        }));
-
-        return {
-            name: formattedName,
-            email: null,
-            phone: null,
-            vacancyMatches: matches,
-            strengths: [
-                "Perfil técnico afín a distribución mayorista",
-                "Experiencia en comercialización de equipo tecnológico",
-                "Buenas prácticas de seguimiento de cartera de clientes"
-            ],
-            weaknesses: [
-                "Validar tiempo de traslado y disponibilidad inmediata",
-                "Alinear metodología con catálogo interno de DC Mayorista"
-            ],
-            justification: `Evaluación completada para el candidato. Presenta un perfil alineado a los requerimientos de la vacante principal.`
-        };
+        parts.push({ text: promptText });
+    } else if (isDocx) {
+        const textContent = extractTextFromDocx(file.buffer);
+        parts.push({
+            text: `CONTENIDO DEL CURRÍCULUM:\n"""${textContent}"""\n\n${promptText}`
+        });
+    } else {
+        // Texto plano
+        parts.push({
+            text: `CONTENIDO DEL CURRÍCULUM:\n"""${file.buffer.toString('utf-8')}"""\n\n${promptText}`
+        });
     }
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: parts }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                temperature: 0.1
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errDetails = await response.text();
+        console.error(">>> ERROR REAL DE GEMINI API:", errDetails);
+        throw new Error(`Google Gemini rechazó la petición (${response.status}): ${errDetails}`);
+    }
+
+    const data = await response.json();
+    let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error("Gemini no devolvió texto de análisis.");
+
+    // Limpieza de formato
+    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(rawText);
 }
 
-// --- ENDPOINTS ---
+// --- RUTAS DE API ---
 app.get('/api/vacancies', (req, res) => res.json(sharedVacancies));
 
 app.post('/api/vacancies', (req, res) => {
@@ -214,15 +228,16 @@ app.delete('/api/candidates/:id', (req, res) => {
     res.json({ success: true });
 });
 
+// EVALUAR NUEVOS CANDIDATOS
 app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
     try {
         const files = req.files;
-        if (!files || files.length === 0) return res.status(400).json({ error: "Sube al menos un CV" });
+        if (!files || files.length === 0) return res.status(400).json({ error: "Sube al menos un CV." });
 
         const activeVacancies = sharedVacancies.filter(v => v.status === "Activa");
         if (activeVacancies.length === 0) return res.status(400).json({ error: "No hay vacantes activas publicadas." });
 
-        const processedCandidates = [];
+        const evaluatedList = [];
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -234,35 +249,37 @@ app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
                 name: file.originalname
             });
 
-            const aiResult = await analyzeResumeWithGemini(file.buffer, file.mimetype || 'application/pdf', activeVacancies, file.originalname);
+            // Análisis real con Gemini
+            const aiData = await analyzeWithGeminiAI(file, activeVacancies);
 
-            aiResult.vacancyMatches.sort((a, b) => b.score - a.score);
-            const topMatch = aiResult.vacancyMatches[0] || { vacancyTitle: "General", score: 70 };
+            aiData.vacancyMatches.sort((a, b) => b.score - a.score);
+            const top = aiData.vacancyMatches[0] || { vacancyTitle: "General", score: 50 };
 
-            processedCandidates.push({
+            evaluatedList.push({
                 id: candId,
-                name: aiResult.name || file.originalname.replace(/\.[^/.]+$/, ""),
-                email: aiResult.email || null,
-                phone: aiResult.phone || null,
-                topRole: topMatch.vacancyTitle,
-                topScore: topMatch.score,
-                vacancyMatches: aiResult.vacancyMatches,
+                name: aiData.name || file.originalname.replace(/\.[^/.]+$/, ""),
+                email: aiData.email || null,
+                phone: aiData.phone || null,
+                topRole: top.vacancyTitle,
+                topScore: top.score,
+                vacancyMatches: aiData.vacancyMatches,
                 discarded: false,
-                strengths: aiResult.strengths || [],
-                weaknesses: aiResult.weaknesses || [],
-                justification: aiResult.justification || ""
+                strengths: aiData.strengths || [],
+                weaknesses: aiData.weaknesses || [],
+                justification: aiData.justification || ""
             });
         }
 
-        sharedCandidates = [...processedCandidates, ...sharedCandidates];
+        sharedCandidates = [...evaluatedList, ...sharedCandidates];
         res.json({ success: true, candidates: sharedCandidates });
 
     } catch (err) {
-        console.error("Error al evaluar:", err);
+        console.error("Falla en evaluación:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
+// RE-EVALUACIÓN CON IA PARA VACANTES NUEVAS
 app.post('/api/recalculate', async (req, res) => {
     try {
         const activeVacancies = sharedVacancies.filter(v => v.status === "Activa");
@@ -271,22 +288,30 @@ app.post('/api/recalculate', async (req, res) => {
         for (let cand of sharedCandidates) {
             const file = cvFilesMap.get(cand.id);
             if (file) {
-                const aiResult = await analyzeResumeWithGemini(file.buffer, file.mimeType, activeVacancies, file.name);
-                aiResult.vacancyMatches.sort((a, b) => b.score - a.score);
-                const top = aiResult.vacancyMatches[0] || { vacancyTitle: "General", score: 70 };
+                const aiData = await analyzeWithGeminiAI({
+                    originalname: file.name,
+                    buffer: file.buffer,
+                    mimetype: file.mimeType
+                }, activeVacancies);
 
+                aiData.vacancyMatches.sort((a, b) => b.score - a.score);
+                const top = aiData.vacancyMatches[0] || { vacancyTitle: "General", score: 50 };
+
+                cand.name = aiData.name || cand.name;
+                cand.email = aiData.email || cand.email;
+                cand.phone = aiData.phone || cand.phone;
                 cand.topRole = top.vacancyTitle;
                 cand.topScore = top.score;
-                cand.vacancyMatches = aiResult.vacancyMatches;
-                cand.strengths = aiResult.strengths;
-                cand.weaknesses = aiResult.weaknesses;
-                cand.justification = aiResult.justification;
+                cand.vacancyMatches = aiData.vacancyMatches;
+                cand.strengths = aiData.strengths;
+                cand.weaknesses = aiData.weaknesses;
+                cand.justification = aiData.justification;
             }
         }
 
         res.json({ success: true, candidates: sharedCandidates });
     } catch (err) {
-        console.error("Error al re-evaluar:", err);
+        console.error("Falla al re-evaluar:", err);
         res.status(500).json({ error: err.message });
     }
 });
