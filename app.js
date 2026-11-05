@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Sistema de Notificaciones Toast Flotantes (Cero bloqueos de navegador)
     function showToast(message) {
         let container = document.getElementById('toastContainer');
         if (!container) {
@@ -15,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => toast.remove(), 4000);
     }
 
-    // 2. Selector de Tema Claro / Oscuro
+    // 1. Selector de Tema
     const themeToggleBtn = document.getElementById('themeToggleBtn');
     if (themeToggleBtn) {
         const themeIcon = themeToggleBtn.querySelector('.theme-icon');
@@ -25,15 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         themeToggleBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', nextTheme);
-            if (themeIcon) themeIcon.textContent = nextTheme === 'dark' ? '🌙' : '☀️';
-            localStorage.setItem('dc-theme', nextTheme);
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            if (themeIcon) themeIcon.textContent = next === 'dark' ? '🌙' : '☀️';
+            localStorage.setItem('dc-theme', next);
         });
     }
 
-    // 3. Navegación por Pestañas (Blindada contra bloqueos)
+    // 2. Navegación por Pestañas
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -48,34 +47,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btn.classList.add('active');
             const targetContent = document.getElementById(targetId);
-            if (targetContent) {
-                targetContent.classList.add('active');
-            }
+            if (targetContent) targetContent.classList.add('active');
         });
     });
 
-    // 4. Switcher de Vistas (Tarjetas vs Lista)
+    // 3. Switcher de Vistas (Tarjetas vs Lista)
     const viewGridBtn = document.getElementById('viewGridBtn');
     const viewListBtn = document.getElementById('viewListBtn');
     const candidatesGrid = document.getElementById('candidatesGrid');
 
     if (viewGridBtn && viewListBtn && candidatesGrid) {
-        viewGridBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+        viewGridBtn.addEventListener('click', () => {
             viewGridBtn.classList.add('active');
             viewListBtn.classList.remove('active');
             candidatesGrid.classList.remove('list-view');
         });
 
-        viewListBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+        viewListBtn.addEventListener('click', () => {
             viewListBtn.classList.add('active');
             viewGridBtn.classList.remove('active');
             candidatesGrid.classList.add('list-view');
         });
     }
 
-    // 5. Carga y Gestión de Vacantes
+    // 4. Vacantes
     let globalVacancies = [];
     let selectedVacancyToCover = null;
 
@@ -88,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const activeVac = globalVacancies.filter(v => v.status === 'Activa');
             const coveredVac = globalVacancies.filter(v => v.status === 'Cubierta');
 
-            // Vacantes Activas
+            // Render Vacantes Activas
             const activeContainer = document.getElementById('activeVacanciesGrid');
             if (activeContainer) {
                 activeContainer.innerHTML = activeVac.map(v => {
@@ -113,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).join('') || '<p style="color:var(--text-secondary); padding:1rem;">No hay vacantes activas.</p>';
             }
 
-            // Vacantes Cubiertas
+            // Render Vacantes Cubiertas
             const coveredContainer = document.getElementById('coveredVacanciesGrid');
             if (coveredContainer) {
                 coveredContainer.innerHTML = coveredVac.map(v => {
@@ -134,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).join('') || '<p style="color:var(--text-secondary); padding:1rem;">Aún no hay vacantes cubiertas registradas.</p>';
             }
 
-            // Select de Filtros
+            // Select Filtros
             const filterSelect = document.getElementById('filterVacancySelect');
             if (filterSelect) {
                 const currentVal = filterSelect.value;
@@ -161,11 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (e) {
-            console.error("Error cargando vacantes:", e);
+            console.error("Error vacantes:", e);
         }
     }
 
-    // Modal para Cubrir Vacante
+    // Modal Cubrir Vacante
     const coverModal = document.getElementById('coverModal');
     const coverCandidateSelect = document.getElementById('coverCandidateSelect');
 
@@ -184,9 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const btnCancelCover = document.getElementById('btnCancelCover');
-    if (btnCancelCover) {
-        btnCancelCover.addEventListener('click', () => coverModal.classList.remove('active'));
-    }
+    if (btnCancelCover) btnCancelCover.addEventListener('click', () => coverModal.classList.remove('active'));
 
     const btnConfirmCover = document.getElementById('btnConfirmCover');
     if (btnConfirmCover) {
@@ -221,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Publicación de Vacante
     const createVacancyForm = document.getElementById('createVacancyForm');
     if (createVacancyForm) {
         createVacancyForm.addEventListener('submit', async (e) => {
@@ -240,12 +232,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 createVacancyForm.reset();
                 await loadVacancies();
-                showToast("¡Vacante publicada con éxito! Puedes re-evaluar con el botón 🔄.");
+                showToast("¡Vacante publicada con éxito! Pulsa 🔄 para evaluar candidatos existentes.");
             }
         });
     }
 
-    // 6. Candidatos y Filtrado en Vivo
+    // 5. Candidatos y Ventana Flotante Modal
     let globalCandidates = [];
 
     async function loadCandidates() {
@@ -255,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             globalCandidates = await res.json();
             renderAllCandidates();
         } catch (e) {
-            console.error("Error cargando candidatos:", e);
+            console.error("Error candidatos:", e);
         }
     }
 
@@ -263,12 +255,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const filterSelect = document.getElementById('filterVacancySelect');
         const scoreRange = document.getElementById('scoreRange');
         const selectedVac = filterSelect ? filterSelect.value : 'ALL';
-        const minScore = scoreRange ? parseInt(scoreRange.value, 10) : 80;
+        const minScore = scoreRange ? parseInt(scoreRange.value, 10) : 50;
 
         const activeVacIds = new Set(globalVacancies.filter(v => v.status === 'Activa').map(v => v.id));
         const activeList = globalCandidates.filter(c => !c.discarded);
         const discardedList = globalCandidates.filter(c => c.discarded);
 
+        // Filtrado por score
         let filteredActive = activeList.filter(c => (c.topScore || 0) >= minScore);
         if (selectedVac !== 'ALL') {
             filteredActive = filteredActive.filter(c => (c.vacancyMatches || []).some(vm => vm.vacancyId === selectedVac && vm.score >= minScore));
@@ -278,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (countEl) countEl.textContent = filteredActive.length;
 
         if (candidatesGrid) {
-            candidatesGrid.innerHTML = filteredActive.map(c => renderCandidateCard(c, false, activeVacIds)).join('') || '<p style="color:var(--text-secondary); padding:1rem;">No hay candidatos con este porcentaje.</p>';
+            candidatesGrid.innerHTML = filteredActive.map(c => renderCandidateCard(c, false, activeVacIds)).join('') || '<p style="color:var(--text-secondary); padding:1rem;">No hay candidatos con este porcentaje (intenta bajar el slider).</p>';
         }
 
         const discCountEl = document.getElementById('discardedCount');
@@ -312,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeMatches = (c.vacancyMatches || []).filter(vm => activeVacIds.has(vm.vacancyId));
 
         return `
-            <div class="candidate-card" onclick="this.classList.toggle('is-expanded')">
+            <div class="candidate-card" onclick="openCandidateDetailModal('${c.id}')" title="Clic para ver perfil completo en ventana flotante">
                 <div class="card-top">
                     <div>
                         <div class="cand-name">${escapeHtml(c.name)}</div>
@@ -333,7 +326,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div class="card-actions" onclick="event.stopPropagation()">
                     <a href="/api/candidates/${c.id}/cv" target="_blank" class="btn-quick btn-cv">👁️ Ver CV</a>
-
                     ${c.phone ? `<a href="https://api.whatsapp.com/send?phone=${c.phone}" target="_blank" class="btn-quick btn-wa">WhatsApp</a>` : ''}
                     ${c.email ? `<a href="mailto:${c.email}" class="btn-quick btn-mail">Email</a>` : ''}
 
@@ -344,16 +336,66 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button type="button" class="btn-trash" onclick="deleteCandidate('${c.id}')" title="Eliminar definitivamente">🗑️</button>
                     `}
                 </div>
-
-                <div class="expanded-details">
-                    <div style="margin-top:0.5rem; color:var(--neon-green); font-weight:700;">Fortalezas:</div>
-                    <ul style="padding-left:14px; color:var(--text-secondary);">${(c.strengths || []).map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>
-                    <div style="margin-top:0.5rem; color:#ffd600; font-weight:700;">Áreas de Oportunidad:</div>
-                    <ul style="padding-left:14px; color:var(--text-secondary);">${(c.weaknesses || []).map(w => `<li>${escapeHtml(w)}</li>`).join('')}</ul>
-                    <p style="margin-top:0.5rem; color:var(--text-secondary);">${escapeHtml(c.justification || '')}</p>
-                </div>
             </div>
         `;
+    }
+
+    // --- VENTANA FLOTANTE (MODAL DEL CANDIDATO CON RESUMEN IA) ---
+    const candidateDetailModal = document.getElementById('candidateDetailModal');
+    const btnCloseCandModal = document.getElementById('btnCloseCandModal');
+
+    window.openCandidateDetailModal = (candId) => {
+        const c = globalCandidates.find(item => item.id === candId);
+        if (!c || !candidateDetailModal) return;
+
+        const activeVacIds = new Set(globalVacancies.filter(v => v.status === 'Activa').map(v => v.id));
+        const activeMatches = (c.vacancyMatches || []).filter(vm => activeVacIds.has(vm.vacancyId));
+
+        document.getElementById('modalCandName').textContent = c.name;
+        document.getElementById('modalCandRole').textContent = `Afinidad Principal: ${c.topRole || 'General'}`;
+        document.getElementById('modalCandScore').textContent = `${c.topScore || 0}%`;
+
+        // Resumen generado con IA
+        const summaryText = c.justification || `Candidato con ${c.topScore}% de compatibilidad detectado por la IA de DC Mayorista. Presenta competencias clave para las vacantes activas del canal.`;
+        document.getElementById('modalCandSummary').textContent = summaryText;
+
+        // Desglose de Vacantes
+        const vacContainer = document.getElementById('modalCandVacancies');
+        vacContainer.innerHTML = activeMatches.map(vm => `
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; padding:0.3rem 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+                <span>${escapeHtml(vm.vacancyTitle)}</span>
+                <strong style="color:${vm.score >= 80 ? 'var(--neon-green)' : 'var(--neon-cyan)'}">${vm.score}%</strong>
+            </div>
+        `).join('') || '<span style="color:var(--text-secondary); font-size:0.85rem;">Sin vacantes activas vinculadas.</span>';
+
+        // Fortalezas
+        const strList = document.getElementById('modalCandStrengths');
+        strList.innerHTML = (c.strengths || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
+
+        // Debilidades
+        const wList = document.getElementById('modalCandWeaknesses');
+        wList.innerHTML = (c.weaknesses || []).map(w => `<li>${escapeHtml(w)}</li>`).join('');
+
+        // Botones de Acción en el Modal
+        const actBar = document.getElementById('modalCandActions');
+        actBar.innerHTML = `
+            <a href="/api/candidates/${c.id}/cv" target="_blank" class="btn-action-primary" style="width:auto; padding:0.6rem 1.2rem; text-decoration:none;">👁️ Ver CV Original</a>
+            ${c.phone ? `<a href="https://api.whatsapp.com/send?phone=${c.phone}" target="_blank" class="btn-quick btn-wa" style="font-size:0.85rem; padding:0.6rem 1.2rem;">WhatsApp</a>` : ''}
+            ${c.email ? `<a href="mailto:${c.email}" class="btn-quick btn-mail" style="font-size:0.85rem; padding:0.6rem 1.2rem;">Email</a>` : ''}
+        `;
+
+        candidateDetailModal.classList.add('active');
+    };
+
+    if (btnCloseCandModal) {
+        btnCloseCandModal.addEventListener('click', () => candidateDetailModal.classList.remove('active'));
+    }
+
+    // Cerrar modal al hacer clic en el fondo oscuro
+    if (candidateDetailModal) {
+        candidateDetailModal.addEventListener('click', (e) => {
+            if (e.target === candidateDetailModal) candidateDetailModal.classList.remove('active');
+        });
     }
 
     window.toggleDiscard = async (id) => {
@@ -369,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // 7. Subida y Análisis con IA
+    // 6. Subida y Análisis con IA
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const fileCounter = document.getElementById('fileCounter');
@@ -421,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData();
             uploadedFiles.forEach(f => formData.append('resumes', f));
             btnProcess.disabled = true;
-            btnProcess.textContent = "Analizando con Gemini...";
+            btnProcess.textContent = "Analizando con IA...";
 
             try {
                 const res = await fetch('/api/evaluate', { method: 'POST', body: formData });
@@ -442,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 8. Botón Re-evaluación (🔄)
+    // 7. Botón Re-evaluación (🔄)
     const btnRecalculate = document.getElementById('btnRecalculate');
     if (btnRecalculate) {
         btnRecalculate.addEventListener('click', async (e) => {
@@ -469,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 9. Filtros Reactivos en Vivo
+    // 8. Filtros Reactivos
     const scoreRange = document.getElementById('scoreRange');
     const scoreDisplay = document.getElementById('scoreDisplay');
     const filterVacancySelect = document.getElementById('filterVacancySelect');
@@ -492,7 +534,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Carga inicial
     loadVacancies();
     loadCandidates();
 });
