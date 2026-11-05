@@ -16,7 +16,9 @@ const upload = multer({
     limits: { fileSize: 20 * 1024 * 1024 }
 });
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LCSNxBw_a4mYP--mj9bO9lGPTXWtkes4gGxNKcJe7Dw";
+// TU CANAL OFICIAL Y CLAVE EXACTA DE GOOGLE
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LCSNxBw_a4mYP--mj9bO9lGPTXWtkgeS4gGxNKcJe7Dw";
+const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
 // Base de datos colaborativa
 let sharedVacancies = [
@@ -60,58 +62,7 @@ function extractTextFromDocx(buffer) {
     return buffer.toString('utf-8');
 }
 
-// AUTO-RESOLUTOR MULTIMODELO (Prueba gemini-2.0-flash, v1/gemini-1.5-flash y versiones fijadas)
-async function executeGeminiWithFallback(parts) {
-    const candidateEndpoints = [
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${GEMINI_API_KEY}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${GEMINI_API_KEY}`,
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`
-    ];
-
-    let lastErrorDetails = "";
-
-    for (const endpoint of candidateEndpoints) {
-        try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': GEMINI_API_KEY 
-                },
-                body: JSON.stringify({
-                    contents: [{ parts: parts }],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        temperature: 0.1
-                    }
-                })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (rawText) {
-                    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-                    console.log(`>>> CONEXIÓN EXITOSA CON: ${endpoint.split('?')[0]}`);
-                    return JSON.parse(rawText);
-                }
-            } else {
-                const errorBody = await response.text();
-                lastErrorDetails = `Endpoint ${endpoint.split('/')[5].split(':')[0]} falló (${response.status}): ${errorBody}`;
-                console.warn(`Probando siguiente modelo... (${response.status})`);
-            }
-        } catch (fetchErr) {
-            lastErrorDetails = fetchErr.message;
-        }
-    }
-
-    throw new Error(`Ningún modelo de Google respondió. Detalle: ${lastErrorDetails}`);
-}
-
-// LLAMADA A GEMINI PREPARANDO EL CONTENIDO
+// LLAMADA A GEMINI CON TU CANAL EXACTO
 async function analyzeWithGeminiAI(file, activeVacancies) {
     const fileName = file.originalname.toLowerCase();
     const isPdf = fileName.endsWith('.pdf') || (file.mimetype && file.mimetype.includes('pdf'));
@@ -123,18 +74,17 @@ async function analyzeWithGeminiAI(file, activeVacancies) {
 
     const promptText = `
 Eres el Director de Selección de Talento de "DC Mayorista" (distribuidor mayorista de cómputo y TI en México).
-Analiza detalladamente este Currículum Vitae.
+Analiza minuciosamente el archivo de Currículum Vitae adjunto.
 
 VACANTES ACTIVAS EN DC MAYORISTA:
 ${vacancyContext}
 
-INSTRUCCIONES:
-1. Extrae el NOMBRE REAL de la persona que aparece adentro del CV.
-2. Extrae su TELÉFONO y CORREO ELECTRÓNICO si aparecen (de lo contrario pon null).
-3. Evalúa la experiencia real del candidato contra CADA UNA de las vacantes activas.
-4. Asigna un porcentaje de afinidad ("score" de 0 a 100) estricto y único según su experiencia real.
-5. Escribe 3 FORTALEZAS y 2 ÁREAS DE OPORTUNIDAD reales de lo que dice este CV.
-6. Responde EXCLUSIVAMENTE con un JSON plano:
+INSTRUCCIONES OBLIGATORIAS:
+1. Extrae el NOMBRE COMPLETO REAL del candidato que aparece en su CV (sin corromper acentos).
+2. Extrae su TELÉFONO y CORREO ELECTRÓNICO (o null si no están).
+3. Evalúa al candidato contra CADA UNA de las vacantes activas y asigna un score del 0 al 100 objetivo y diferenciado.
+4. Redacta 3 FORTALEZAS y 2 ÁREAS DE OPORTUNIDAD reales de lo que dice este CV.
+5. Responde EXCLUSIVAMENTE con un JSON plano con este formato:
 {
   "name": "Nombre Real Extraído",
   "email": "correo@ejemplo.com",
@@ -144,7 +94,7 @@ INSTRUCCIONES:
   ],
   "strengths": ["Fortaleza 1", "Fortaleza 2", "Fortaleza 3"],
   "weaknesses": ["Área 1", "Área 2"],
-  "justification": "Explicación personalizada del match."
+  "justification": "Explicación personalizada de su afinidad con el puesto en DC Mayorista."
 }
 `;
 
@@ -165,7 +115,34 @@ INSTRUCCIONES:
         parts.push({ text: `CONTENIDO DEL CV:\n"""${file.buffer.toString('utf-8')}"""\n\n${promptText}` });
     }
 
-    return await executeGeminiWithFallback(parts);
+    // Petición exacta al canal de Google
+    const response = await fetch(GEMINI_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': GEMINI_API_KEY
+        },
+        body: JSON.stringify({
+            contents: [{ parts: parts }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                temperature: 0.1
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error(">>> ERROR GEMINI:", errorText);
+        throw new Error(`Google Gemini (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error("Gemini no devolvió texto.");
+
+    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(rawText);
 }
 
 // --- RUTAS DE API ---
