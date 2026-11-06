@@ -7,13 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
     <div class="ambient-glow"></div>
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- HEADER SUPERIOR -->
     <header class="app-header glass-panel">
         <div class="brand">
             <div class="brand-badge">DC RH</div>
@@ -38,7 +37,6 @@
         </div>
     </header>
 
-    <!-- TARJETAS DE MÉTRICAS KPI CON HALO -->
     <section class="kpi-container">
         <div class="kpi-card glass-panel">
             <div class="kpi-header">
@@ -101,7 +99,7 @@
         </div>
     </section>
 
-    <!-- PESTAÑA 1: CANDIDATOS -->
+    <!-- PESTAÑA CANDIDATOS -->
     <main id="tab-candidates" class="tab-content active dashboard-layout">
         <aside class="sidebar-filters glass-panel">
             <div class="panel-header">
@@ -116,13 +114,13 @@
                 </select>
             </div>
 
-            <!-- Score calibrado a 50% por defecto para ver todos los candidatos de inmediato -->
+            <!-- Score en 40% inicial para que veas todas las evaluaciones de la IA sin ocultarlas -->
             <div class="filter-group">
                 <div class="filter-label-flex">
                     <label for="scoreRange">Score Mínimo ATS</label>
-                    <span id="scoreDisplay" class="value-highlight">50%</span>
+                    <span id="scoreDisplay" class="value-highlight">40%</span>
                 </div>
-                <input type="range" id="scoreRange" min="30" max="95" value="50" class="custom-slider">
+                <input type="range" id="scoreRange" min="30" max="95" value="40" class="custom-slider">
             </div>
         </aside>
 
@@ -134,7 +132,7 @@
                         <span class="drop-emoji">📤</span>
                         <div>
                             <h3>Arrastra currículums aquí o haz clic</h3>
-                            <p>Procesamiento nativo y análisis certero con Gemini IA</p>
+                            <p>Análisis 100% puro con IA de Google Gemini</p>
                         </div>
                         <span class="file-counter-pill" id="fileCounter">0 archivos</span>
                     </div>
@@ -157,7 +155,7 @@
         </section>
     </main>
 
-    <!-- PESTAÑA 2: VACANTES ACTIVAS -->
+    <!-- PESTAÑA VACANTES ACTIVAS -->
     <main id="tab-vacancies" class="tab-content dashboard-layout vacancies-layout">
         <aside class="vacancies-form-panel glass-panel">
             <h2>Publicar Nueva Vacante</h2>
@@ -191,7 +189,7 @@
         </section>
     </main>
 
-    <!-- PESTAÑA 3: VACANTES CUBIERTAS -->
+    <!-- PESTAÑA VACANTES CUBIERTAS -->
     <main id="tab-covered" class="tab-content dashboard-layout full-width-layout">
         <section class="vacancies-list-panel">
             <div class="results-header">
@@ -201,7 +199,7 @@
         </section>
     </main>
 
-    <!-- PESTAÑA 4: CVS DESCARTADOS -->
+    <!-- PESTAÑA CVs DESCARTADOS -->
     <main id="tab-discarded" class="tab-content dashboard-layout full-width-layout">
         <section class="main-candidates-flow">
             <div class="results-header">
@@ -211,7 +209,7 @@
         </section>
     </main>
 
-    <!-- MODAL 1: CUBRIR VACANTE -->
+    <!-- MODAL PARA CUBRIR VACANTE -->
     <div id="coverModal" class="modal-overlay">
         <div class="modal-box glass-panel">
             <h3>Marcar Vacante como Cubierta</h3>
@@ -227,7 +225,7 @@
         </div>
     </div>
 
-    <!-- MODAL 2: VENTANA FLOTANTE DE PERFIL DEL CANDIDATO CON RESUMEN IA -->
+    <!-- VENTANA FLOTANTE MODAL CON RESUMEN IA -->
     <div id="candidateDetailModal" class="modal-overlay">
         <div class="modal-box glass-panel candidate-floating-card">
             <div class="modal-top-bar">
@@ -241,7 +239,6 @@
                 </div>
             </div>
 
-            <!-- Resumen Generado con IA -->
             <div class="modal-section-box">
                 <h4 style="color:var(--neon-cyan); margin-bottom:0.5rem; display:flex; align-items:center; gap:6px;">
                     <span>✨</span> Resumen Ejecutivo del Perfil (IA)
@@ -249,16 +246,14 @@
                 <p id="modalCandSummary" style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;"></p>
             </div>
 
-            <!-- Desglose de Vacantes -->
             <div class="modal-section-box">
-                <h4 style="margin-bottom:0.5rem; color:var(--text-primary);">Afinidad por Vacante:</h4>
+                <h4 style="margin-bottom:0.5rem; color:var(--text-primary);">Afinidad por Vacante Activa:</h4>
                 <div id="modalCandVacancies" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
             </div>
 
-            <!-- Fortalezas y Oportunidades -->
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                 <div class="modal-section-box">
-                    <h4 style="color:var(--neon-green); margin-bottom:0.4rem;">Fortalezas Clave:</h4>
+                    <h4 style="color:var(--neon-green); margin-bottom:0.4rem;">Fortalezas Reales:</h4>
                     <ul id="modalCandStrengths" style="padding-left:14px; font-size:0.8rem; color:var(--text-secondary); line-height:1.4;"></ul>
                 </div>
                 <div class="modal-section-box">
@@ -267,11 +262,10 @@
                 </div>
             </div>
 
-            <!-- Acciones Directas -->
             <div class="modal-actions-bar" id="modalCandActions"></div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="./app.js"></script>
 </body>
 </html>
