@@ -16,9 +16,11 @@ const upload = multer({
     limits: { fileSize: 25 * 1024 * 1024 }
 });
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LeAZLZcY2GjA_8QF3lYhlLToMj5J_CU-eZ-kDsK2Pe2g";
+// TU NUEVA CLAVE LIMPIA Y CANAL EXACTO DEL PROYECTO "ATS DCM"
+const GEMINI_API_KEY = "AQ.Ab8RN6LeAZLZcY2GjA_8QF3lYhlLToMj5J_CU-eZ-kDsK2Pe2g";
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
+// Base de datos colaborativa
 let sharedVacancies = [
     {
         id: "vac_1",
@@ -60,6 +62,7 @@ function extractTextFromDocx(buffer) {
     return buffer.toString('utf-8');
 }
 
+// EVALUACIÓN 100% PURA CON GOOGLE GEMINI
 async function analyzeWithGemini(file, activeVacancies) {
     const fileName = file.originalname.toLowerCase();
     const isPdf = fileName.endsWith('.pdf') || (file.mimetype && file.mimetype.includes('pdf'));
@@ -82,7 +85,7 @@ INSTRUCCIONES OBLIGATORIAS:
 3. Extrae su TELÉFONO y CORREO ELECTRÓNICO (si no aparecen, pon null).
 4. Evalúa su experiencia contra CADA vacante activa y calcula un score de afinidad de 0 a 100 objetivo y diferenciado.
 5. Redacta 3 FORTALEZAS y 2 ÁREAS DE OPORTUNIDAD reales de lo que dice este CV.
-6. Responde EXCLUSIVAMENTE con un JSON plano sin bloques de código:
+6. Responde EXCLUSIVAMENTE con un JSON plano sin bloques de código markdown:
 {
   "name": "Nombre Real del Candidato",
   "summary": "Resumen ejecutivo profesional detallado redactado por la IA...",
@@ -150,6 +153,7 @@ INSTRUCCIONES OBLIGATORIAS:
     return JSON.parse(rawText);
 }
 
+// --- RUTAS DE API ---
 app.get('/api/vacancies', (req, res) => res.json(sharedVacancies));
 
 app.post('/api/vacancies', (req, res) => {
@@ -239,10 +243,11 @@ app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
                 name: file.originalname
             });
 
+            // Análisis real con Gemini
             const aiData = await analyzeWithGemini(file, activeVacancies);
 
             aiData.vacancyMatches.sort((a, b) => b.score - a.score);
-            const top = aiData.vacancyMatches[0] || { vacancyTitle: activeVacancies[0].title, score: 70 };
+            const top = aiData.vacancyMatches[0] || { vacancyTitle: "General", score: 70 };
 
             evaluatedList.push({
                 id: candId,
@@ -279,4 +284,31 @@ app.post('/api/recalculate', async (req, res) => {
             if (file) {
                 const aiData = await analyzeWithGemini({
                     originalname: file.name,
-                    bu
+                    buffer: file.buffer,
+                    mimetype: file.mimeType
+                }, activeVacancies);
+
+                aiData.vacancyMatches.sort((a, b) => b.score - a.score);
+                const top = aiData.vacancyMatches[0] || { vacancyTitle: "General", score: 70 };
+
+                cand.name = aiData.name;
+                cand.summary = aiData.summary || aiData.justification;
+                cand.email = aiData.email;
+                cand.phone = aiData.phone;
+                cand.topRole = top.vacancyTitle;
+                cand.topScore = top.score;
+                cand.vacancyMatches = aiData.vacancyMatches;
+                cand.strengths = aiData.strengths;
+                cand.weaknesses = aiData.weaknesses;
+                cand.justification = aiData.justification;
+            }
+        }
+
+        res.json({ success: true, candidates: sharedCandidates });
+    } catch (err) {
+        console.error("Error al re-evaluar con IA:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.listen(PORT, () => console.log(`Servidor ATS activo en puerto ${PORT}`));
