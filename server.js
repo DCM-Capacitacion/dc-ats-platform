@@ -13,18 +13,13 @@ app.use(express.json());
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 20 * 1024 * 1024 }
+    limits: { fileSize: 25 * 1024 * 1024 }
 });
 
-// CLAVE VERIFICADA EXACTA (Prioriza la clave completa sobre variables desactualizadas)
-const VERIFIED_KEY = "AQ.Ab8RN6LCSNxBw_a4mYP--mj9bO9lGPTXWtkgeS4gGxNKcJe7Dw";
-const GEMINI_API_KEY = (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.includes("geS4"))
-    ? process.env.GEMINI_API_KEY.trim()
-    : VERIFIED_KEY;
+// CLAVE OFICIAL DE GOOGLE AI STUDIO
+const GEMINI_API_KEY = "AQ.Ab8RN6LCSNxBw_a4mYP--mj9bO9lGPTXWtkgeS4gGxNKcJe7Dw";
 
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-
-// BASE DE DATOS COLABORATIVA
+// Base de datos colaborativa
 let sharedVacancies = [
     {
         id: "vac_1",
@@ -53,7 +48,6 @@ let sharedVacancies = [
 let sharedCandidates = [];
 let cvFilesMap = new Map();
 
-// EXTRACTOR DE TEXTO PARA ARCHIVOS WORD (.DOCX)
 function extractTextFromDocx(buffer) {
     try {
         const str = buffer.toString('binary');
@@ -67,93 +61,53 @@ function extractTextFromDocx(buffer) {
     return buffer.toString('utf-8');
 }
 
-// MOTOR DE ALTA PRECISIÓN LOCAL (Analiza el texto real del documento)
-function analyzeLocallyWithPrecision(file, activeVacancies) {
-    let text = "";
-    if (file.originalname.toLowerCase().endsWith('.docx')) {
-        text = extractTextFromDocx(file.buffer);
-    } else {
-        text = file.buffer.toString('utf-8');
-    }
-
-    // Extracción de nombre real limpio
-    const cleanFileName = file.originalname.replace(/\.[^/.]+$/, "").replace(/[-_()0-9]/g, " ").trim();
-    const candidateName = cleanFileName.charAt(0).toUpperCase() + cleanFileName.slice(1);
-
-    // Detección real de contacto
-    const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
-    const phoneMatch = text.match(/\b\d{8,12}\b/);
-
-    // Evaluación semántica por cada vacante activa
-    const vacancyMatches = activeVacancies.map(vac => {
-        const keywords = (vac.title + " " + vac.description).toLowerCase().split(/\W+/).filter(w => w.length > 3);
-        const textLower = text.toLowerCase();
-        let hits = 0;
-        keywords.forEach(kw => { if (textLower.includes(kw)) hits++; });
-
-        // Cálculo determinista y personalizado
-        const score = Math.min(96, Math.max(55, Math.round(62 + (hits * 4.5))));
-        return {
-            vacancyId: vac.id,
-            vacancyTitle: vac.title,
-            score: score
-        };
-    });
-
-    vacancyMatches.sort((a, b) => b.score - a.score);
-    const top = vacancyMatches[0] || { vacancyTitle: activeVacancies[0].title, score: 75 };
-
-    return {
-        name: candidateName,
-        email: emailMatch ? emailMatch[0] : null,
-        phone: phoneMatch ? phoneMatch[0] : null,
-        vacancyMatches: vacancyMatches,
-        strengths: [
-            `Experiencia y conocimientos alineados con ${top.vacancyTitle}`,
-            "Capacidad técnica comprobada en gestión comercial y operativa",
-            "Afinidad con procesos de distribución de mayoreo en tecnología"
-        ],
-        weaknesses: [
-            "Validar vigencia de certificaciones especializadas en catálogo",
-            "Alinear esquemas de compensación y disponibilidad de ingreso"
-        ],
-        justification: `El perfil fue contrastado contra las ${activeVacancies.length} vacantes activas. Muestra una compatibilidad sobresaliente del ${top.score}% para el puesto de ${top.vacancyTitle}.`
-    };
-}
-
-// ANÁLISIS INTEGRAL CON GEMINI
-async function analyzeResume(file, activeVacancies) {
+// ANÁLISIS 100% REAL CON GEMINI IA (SIN TEXTOS FIJOS)
+async function analyzeWithGemini(file, activeVacancies) {
     const fileName = file.originalname.toLowerCase();
     const isPdf = fileName.endsWith('.pdf') || (file.mimetype && file.mimetype.includes('pdf'));
     const isDocx = fileName.endsWith('.docx') || fileName.endsWith('.doc');
 
     const vacancyContext = activeVacancies.map(v => 
-        `[ID: ${v.id}] PUESTO: "${v.title}" | REQUISITOS: "${v.description}"`
+        `ID: "${v.id}" | PUESTO: "${v.title}" | REQUISITOS: "${v.description}"`
     ).join("\n\n");
 
     const promptText = `
-Eres el Director de Recursos Humanos de "DC Mayorista". Analiza minuciosamente este CV.
-VACANTES ACTIVAS:
+Eres el Director de Selección y Evaluación de Talento de "DC Mayorista".
+Analiza minuciosamente el documento de Currículum Vitae adjunto.
+
+VACANTES ACTIVAS EN DC MAYORISTA:
 ${vacancyContext}
 
-INSTRUCCIONES:
-1. Extrae el NOMBRE REAL del candidato.
-2. Extrae TELÉFONO y CORREO (o null).
-3. Evalúa al candidato contra CADA vacante activa y asigna un score del 0 al 100.
-4. Escribe 3 fortalezas y 2 debilidades únicas para este perfil.
-5. Responde estrictamente con JSON:
+INSTRUCCIONES ESTRICTAS:
+1. Extrae el NOMBRE COMPLETO REAL del candidato escrito dentro del CV.
+2. Redacta un RESUMEN EJECUTIVO ("summary") de 3 a 4 líneas describiendo su trayectoria, especialidad y perfil real.
+3. Extrae su TELÉFONO y CORREO ELECTRÓNICO reales (si no están, pon null).
+4. Evalúa su experiencia contra CADA vacante activa y calcula un score de afinidad de 0 a 100 realista y objetivo.
+5. Redacta 3 FORTALEZAS y 2 ÁREAS DE OPORTUNIDAD reales basadas 100% en lo que leíste en este CV.
+6. Responde EXCLUSIVAMENTE con un JSON plano sin bloques de código:
 {
-  "name": "Nombre Real",
+  "name": "Nombre Real del Candidato",
+  "summary": "Resumen ejecutivo profesional detallado redactado por la IA...",
   "email": "correo@ejemplo.com",
   "phone": "5512345678",
-  "vacancyMatches": [ { "vacancyId": "id", "vacancyTitle": "Puesto", "score": 85 } ],
-  "strengths": ["F1", "F2", "F3"],
-  "weaknesses": ["D1", "D2"],
-  "justification": "Justificación clara"
+  "vacancyMatches": [
+    { "vacancyId": "id_vacante", "vacancyTitle": "Título de Vacante", "score": 85 }
+  ],
+  "strengths": [
+    "Fortaleza técnica 1 real del candidato",
+    "Fortaleza técnica 2 real del candidato",
+    "Fortaleza técnica 3 real del candidato"
+  ],
+  "weaknesses": [
+    "Área de oportunidad 1 real del candidato",
+    "Área de oportunidad 2 real del candidato"
+  ],
+  "justification": "Explicación detallada del por qué se calculó esta afinidad para DC Mayorista."
 }
 `;
 
     const parts = [];
+
     if (isPdf) {
         parts.push({
             inlineData: {
@@ -164,45 +118,59 @@ INSTRUCCIONES:
         parts.push({ text: promptText });
     } else if (isDocx) {
         const textContent = extractTextFromDocx(file.buffer);
-        parts.push({ text: `CONTENIDO:\n"""${textContent}"""\n\n${promptText}` });
+        parts.push({ text: `CONTENIDO DEL CV:\n"""${textContent}"""\n\n${promptText}` });
     } else {
-        parts.push({ text: `CONTENIDO:\n"""${file.buffer.toString('utf-8')}"""\n\n${promptText}` });
+        parts.push({ text: `CONTENIDO DEL CV:\n"""${file.buffer.toString('utf-8')}"""\n\n${promptText}` });
     }
 
-    try {
-        const response = await fetch(GEMINI_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-goog-api-key': GEMINI_API_KEY
-            },
-            body: JSON.stringify({
-                contents: [{ parts: parts }],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    temperature: 0.1
+    // Modelos oficiales de Google
+    const modelsToTry = [
+        "gemini-flash-latest",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash"
+    ];
+
+    let lastError = "";
+
+    for (const model of modelsToTry) {
+        try {
+            // Nota: Se pasa la clave únicamente por URL para evitar el error 401 ACCESS_TOKEN_TYPE_UNSUPPORTED
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: parts }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        temperature: 0.1
+                    }
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (rawText) {
+                    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    console.log(`>>> ANÁLISIS DE IA EXITOSO CON: ${model}`);
+                    return JSON.parse(rawText);
                 }
-            })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (rawText) {
-                rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-                return JSON.parse(rawText);
+            } else {
+                const errBody = await response.text();
+                lastError = `Modelo ${model} respondió (${response.status}): ${errBody}`;
+                console.warn(`Probando siguiente modelo...`);
             }
-        } else {
-            console.warn(`Respuesta Gemini (${response.status}). Aplicando procesador de alta precisión...`);
-            return analyzeLocallyWithPrecision(file, activeVacancies);
+        } catch (fetchErr) {
+            lastError = fetchErr.message;
         }
-    } catch (err) {
-        console.warn(`Aviso de conexión: ${err.message}. Aplicando procesador de alta precisión...`);
-        return analyzeLocallyWithPrecision(file, activeVacancies);
     }
+
+    throw new Error(`Google Gemini no pudo procesar el archivo. Detalle: ${lastError}`);
 }
 
-// --- ENDPOINTS DE API ---
+// --- RUTAS DE LA PLATAFORMA ---
 app.get('/api/vacancies', (req, res) => res.json(sharedVacancies));
 
 app.post('/api/vacancies', (req, res) => {
@@ -272,6 +240,7 @@ app.delete('/api/candidates/:id', (req, res) => {
     res.json({ success: true });
 });
 
+// EVALUAR NUEVOS CANDIDATOS EXCLUSIVAMENTE CON IA
 app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
     try {
         const files = req.files;
@@ -292,7 +261,8 @@ app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
                 name: file.originalname
             });
 
-            const aiData = await analyzeResume(file, activeVacancies);
+            // Análisis real y único con Gemini IA
+            const aiData = await analyzeWithGemini(file, activeVacancies);
 
             aiData.vacancyMatches.sort((a, b) => b.score - a.score);
             const top = aiData.vacancyMatches[0] || { vacancyTitle: activeVacancies[0].title, score: 70 };
@@ -300,15 +270,16 @@ app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
             evaluatedList.push({
                 id: candId,
                 name: aiData.name,
+                summary: aiData.summary || aiData.justification,
                 email: aiData.email,
                 phone: aiData.phone,
                 topRole: top.vacancyTitle,
                 topScore: top.score,
                 vacancyMatches: aiData.vacancyMatches,
                 discarded: false,
-                strengths: aiData.strengths,
-                weaknesses: aiData.weaknesses,
-                justification: aiData.justification
+                strengths: aiData.strengths || [],
+                weaknesses: aiData.weaknesses || [],
+                justification: aiData.justification || ""
             });
         }
 
@@ -316,11 +287,12 @@ app.post('/api/evaluate', upload.array('resumes', 15), async (req, res) => {
         res.json({ success: true, candidates: sharedCandidates });
 
     } catch (err) {
-        console.error("Error en procesamiento:", err);
+        console.error("Error al evaluar con IA:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
+// RE-EVALUAR CON IA CONTRA VACANTES NUEVAS
 app.post('/api/recalculate', async (req, res) => {
     try {
         const activeVacancies = sharedVacancies.filter(v => v.status === "Activa");
@@ -329,7 +301,7 @@ app.post('/api/recalculate', async (req, res) => {
         for (let cand of sharedCandidates) {
             const file = cvFilesMap.get(cand.id);
             if (file) {
-                const aiData = await analyzeResume({
+                const aiData = await analyzeWithGemini({
                     originalname: file.name,
                     buffer: file.buffer,
                     mimetype: file.mimeType
@@ -338,6 +310,10 @@ app.post('/api/recalculate', async (req, res) => {
                 aiData.vacancyMatches.sort((a, b) => b.score - a.score);
                 const top = aiData.vacancyMatches[0] || { vacancyTitle: activeVacancies[0].title, score: 70 };
 
+                cand.name = aiData.name;
+                cand.summary = aiData.summary || aiData.justification;
+                cand.email = aiData.email;
+                cand.phone = aiData.phone;
                 cand.topRole = top.vacancyTitle;
                 cand.topScore = top.score;
                 cand.vacancyMatches = aiData.vacancyMatches;
@@ -349,7 +325,7 @@ app.post('/api/recalculate', async (req, res) => {
 
         res.json({ success: true, candidates: sharedCandidates });
     } catch (err) {
-        console.error("Error al re-evaluar:", err);
+        console.error("Error al re-evaluar con IA:", err);
         res.status(500).json({ error: err.message });
     }
 });
